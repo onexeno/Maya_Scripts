@@ -1,0 +1,29 @@
+if(`window -ex StopWatcher`)
+    deleteUI StopWatcher;
+    
+window -t "StopWatcher" -w 200 -h 300 StopWatcher;
+columnLayout;
+button - w 50 -h 50 -l "Start" -c "stopWatcher()" StopWatcher_Button;
+textField -ed off StopWatcher_Field;
+showWindow StopWatcher;
+
+
+global proc stopWatcher()
+{
+    float $minTime = `playbackOptions -q -min`;
+    float $maxTime = `playbackOptions -q -max`;
+    float $time=0.0;
+    
+    timer -s -n "stopWatch";
+    
+    for ($i=$minTime;$i<=$maxTime;$i++)
+    {
+        currentTime -e $i;
+        if($i==$maxTime)
+        {
+            $time = `timer -e -n "stopWatch"`;
+        }
+    }
+    textField -e -tx $time StopWatcher_Field;
+
+}

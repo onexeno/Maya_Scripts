@@ -1,0 +1,155 @@
+
+global proc translationCalculate(string $srcObj,string $tarObj)
+{
+    
+//--------------------^ Translation calculation ^-------------------------//
+    //use decomposeMatrix Node to extract world translate info.
+    string $motionObj[] = `duplicate -rr $srcObj`;
+    string $motionObjMesh[] = `listRelatives -s -ni $motionObj[0]`;
+    string $srcObjMesh[] = `listRelatives -s -ni $srcObj`;
+    //xform -cp $motionObj[0];
+    setAttr -l off ($motionObj[0] + ".sx");
+    setAttr -l off ($motionObj[0] + ".sy");
+    setAttr -l off ($motionObj[0] + ".sz");
+    setAttr -l off ($motionObj[0] + ".tx");
+    setAttr -l off ($motionObj[0] + ".ty");
+    setAttr -l off ($motionObj[0] + ".tz");
+    connectAttr ($srcObjMesh[0] + ".worldMesh[0]") ($motionObjMesh[0] + ".inMesh");
+
+    string $scrPosMatrixNode = `createNode -n "srcPosWorldMatrix" decomposeMatrix`;
+    string $tarPosMatrixNode = `createNode -n "tarPosWolrdMatrix" decomposeMatrix`;
+    //use vector subtract to calculate the direction.
+    string $minusVectorNode = `createNode -n "minusVector" plusMinusAverage`;
+    setAttr ($minusVectorNode+".operation") 2;
+    //set the movement percent, from source object's position to target object's position.
+    string $translateNode = `createNode -n "translateControl" multiplyDivide`;
+    //expression -s ($translateNode + ".input2Y=" + $translateNode + ".input2X");
+    //expression -s ($translateNode + ".input2Z=" + $translateNode + ".input2X");
+    connectAttr ($translateNode + ".input2X") ($translateNode + ".input2Y");
+    connectAttr ($translateNode + ".input2X") ($translateNode + ".input2Z");
+    //use vector sum to calculate the current position
+    string $stepPlusNode = `createNode -n "stepPlus" plusMinusAverage`;
+    setAttr ($stepPlusNode+".operation") 1;
+    
+    //connect attributes...
+    connectAttr ($srcObj + ".worldMatrix[0]") ($scrPosMatrixNode + ".inputMatrix"); 
+    connectAttr ($tarObj + ".worldMatrix[0]") ($tarPosMatrixNode + ".inputMatrix");
+    
+    connectAttr ($scrPosMatrixNode+".outputTranslate") ($minusVectorNode + ".input3D[1]");
+    connectAttr ($tarPosMatrixNode+".outputTranslate") ($minusVectorNode + ".input3D[0]");
+    
+    connectAttr ($minusVectorNode + ".output3D") ($translateNode + ".input1");
+    
+    connectAttr ($scrPosMatrixNode+".outputTranslate") ($stepPlusNode+".input3D[0]");
+    connectAttr ($translateNode+".output") ($stepPlusNode+".input3D[1]");
+    
+    
+    //--------------------^ Translation calculation ^-------------------------//
+
+print ("(╯‵□′)╯︵┻━┻" + "\n" + "(╯‵□′)╯︵┻━┻" + "\n" + "(╯‵□′)╯︵┻━┻" + "\n" + "(╯‵□′)╯︵┻━┻" + "\n" + "(╯‵□′)╯︵┻━┻" + "\n" + "(╯‵□′)╯︵┻━┻" + "\n");
+
+    //--------------------^ Scale calculation ^-------------------------//
+    string $magVectorMinusSrc = `createNode -n "translateVectorMinusSrc" plusMinusAverage`;
+    setAttr ($magVectorMinusSrc + ".operation") 2;
+    string $magVectorMinusTar = `createNode -n "translateVectorMinusTar" plusMinusAverage`;
+    setAttr ($magVectorMinusTar + ".operation") 2;
+    
+    string $magVectorPowerSrc = `createNode -n "powerSrc" multiplyDivide`;
+    setAttr ($magVectorPowerSrc + ".operation") 3; 
+    setAttr ($magVectorPowerSrc + ".input2X") 2;
+    setAttr ($magVectorPowerSrc + ".input2Y") 2;
+    setAttr ($magVectorPowerSrc + ".input2Z") 2;
+    string $magVectorPowerTar = `createNode -n "powerTar" multiplyDivide`;
+    setAttr ($magVectorPowerTar + ".operation") 3;
+    setAttr ($magVectorPowerTar + ".input2X") 2;
+    setAttr ($magVectorPowerTar + ".input2Y") 2;
+    setAttr ($magVectorPowerTar + ".input2Z") 2;
+     
+    
+    string $magVectorSumSrc = `createNode -n "plusSrc" plusMinusAverage`;
+    setAttr ($magVectorSumSrc + ".operation") 1;
+    string $magVectorSumTar = `createNode -n "plusTar" plusMinusAverage`;
+    setAttr ($magVectorSumTar + ".operation") 1;
+    
+    string $magVectorSqrtSrc = `createNode -n "sqrtSrc" multiplyDivide`;
+    setAttr ($magVectorSqrtSrc + ".operation") 3;
+    setAttr ($magVectorSqrtSrc + ".input2X") 0.5;
+    setAttr ($magVectorSqrtSrc + ".input2Y") 0.5;
+    setAttr ($magVectorSqrtSrc + ".input2Z") 0.5;
+    string $magVectorSqrtTar = `createNode -n "sqrtTar" multiplyDivide`;
+    setAttr ($magVectorSqrtTar + ".operation") 3;
+    setAttr ($magVectorSqrtTar + ".input2X") 0.5;
+    setAttr ($magVectorSqrtTar + ".input2Y") 0.5;
+    setAttr ($magVectorSqrtTar + ".input2Z") 0.5;
+    
+    string $scaleRatio = `createNode -n "scaleRatio" multiplyDivide`;
+    setAttr ($scaleRatio + ".operation") 2;
+    string $scaleEin = `createNode -n "scaleMultiply" multiplyDivide`;
+    
+    connectAttr ($scaleRatio + ".outputX") ($scaleEin + ".input2X");
+    connectAttr ($scaleRatio + ".outputX") ($scaleEin + ".input2Y");
+    connectAttr ($scaleRatio + ".outputX") ($scaleEin + ".input2Z");   
+     
+    connectAttr ($scrPosMatrixNode + ".outputScale") ($scaleEin + ".input1");
+    
+    connectAttr ($magVectorMinusSrc + ".output3D") ($magVectorPowerSrc + ".input1");
+    
+    connectAttr ($magVectorMinusTar + ".output3D") ($magVectorPowerTar + ".input1");
+    
+    connectAttr ($magVectorPowerSrc + ".outputX") ($magVectorSumSrc + ".input1D[0]");
+    connectAttr ($magVectorPowerSrc + ".outputY") ($magVectorSumSrc + ".input1D[1]");
+    connectAttr ($magVectorPowerSrc + ".outputZ") ($magVectorSumSrc + ".input1D[2]");
+    
+    connectAttr ($magVectorPowerTar + ".outputX") ($magVectorSumTar + ".input1D[0]");
+    connectAttr ($magVectorPowerTar + ".outputY") ($magVectorSumTar + ".input1D[1]");
+    connectAttr ($magVectorPowerTar + ".outputZ") ($magVectorSumTar + ".input1D[2]");
+    
+    connectAttr ($magVectorSumSrc + ".output1D") ($magVectorSqrtSrc + ".input1X");
+    connectAttr ($magVectorSumTar + ".output1D") ($magVectorSqrtTar + ".input1X");
+    
+    connectAttr ($magVectorSqrtSrc + ".outputX") ($scaleRatio + ".input2X");
+    connectAttr ($magVectorSqrtTar + ".outputX") ($scaleRatio + ".input1X"); 
+    //--------------------^ Scale calculation ^-------------------------//
+    connectAttr ($srcObj + ".rotate") ($motionObj[0] + ".rotate");
+    connectAttr ($srcObj + ".translate") ($magVectorMinusSrc + ".input3D[0]");
+    connectAttr ($motionObj[0] + ".translate") ($magVectorMinusTar + ".input3D[0]");
+    connectAttr ($tarObj + ".translate") ($magVectorMinusSrc + ".input3D[1]");
+    connectAttr ($tarObj + ".translate") ($magVectorMinusTar + ".input3D[1]");
+    connectAttr ($stepPlusNode + ".output3D") ($motionObj[0] + ".translate");
+    connectAttr ($scaleEin + ".outputX") ($motionObj[0] + ".scaleX");
+    connectAttr ($scaleEin + ".outputY") ($motionObj[0] + ".scaleY");
+    connectAttr ($scaleEin + ".outputZ") ($motionObj[0] + ".scaleZ");
+    
+    string $attrName;
+    
+    if(size(`match ":" $srcObj`))
+    {
+        string $temps[] = {};
+        tokenize $srcObj ":" $temps;
+        $attrName = $temps[size($temps)-1];
+    }
+    else
+    {
+        $attrName = $srcObj;
+    }
+    
+    if(!`attributeExists ($attrName + "_offset") $tarObj`)
+    {
+        addAttr -ln ($attrName + "_offset") -at double -dv 0 -min 0 -max 0.99 $tarObj;
+        setAttr -e -keyable true ($tarObj + "." + $attrName + "_offset");
+        setAttr ($tarObj + "." + $attrName + "_offset") 0.5;
+        connectAttr ($tarObj + "." + $attrName + "_offset") ($translateNode+".input2X");
+    }
+    else
+    {
+        deleteAttr -at ($attrName + "_offset") $tarObj;
+        addAttr -ln ($attrName + "_offset") -at double -dv 0 -min 0 -max 0.99 $tarObj;
+        setAttr -e -keyable true ($tarObj + "." + $attrName + "_offset");
+        setAttr ($tarObj + "." + $attrName + "_offset") 0.5;
+        connectAttr ($tarObj + "." + $attrName + "_offset") ($translateNode+".input2X");
+    }
+}  
+
+string $strList[] = `ls -sl`;
+translationCalculate($strList[0],$strList[1])
+//先将物体combine再separate就行。

@@ -1,0 +1,251 @@
+//$t:current time
+//$b:beginning value
+//$c:change in value
+//$d:duration
+//$x:return value
+
+global proc float linear(float $t,float $b,float $c,float $d)
+{
+    return ($c*$t/$d+$b);
+}
+
+global proc float easeQuadIn(float $t,float $b,float $c,float $d)
+{
+    return ($c*($t/=$d)*$t+$b);
+}
+
+global proc float easeQuadOut(float $t,float $b,float $c,float $d)
+{
+    return (-$c*($t/=$d)*($t-2)+$b);
+}
+
+global proc float easeQuadInOut(float $t,float $b,float $c,float $d)
+{
+    if(($t/=$d/2)<1)
+        return ($c/2*$t*$t+$b);
+    return (-$c/2*((--$t)*($t-2)-1)+$b);
+}
+
+global proc float easeCubicIn(float $t,float $b,float $c,float $d)
+{
+    return ($c*($t/=$d)*$t*$t + $b);
+}
+
+global proc float easeCubicOut(float $t,float $b,float $c,float $d)
+{
+    return ($c*(($t=$t/$d-1)*$t*$t+1)+$b);
+}
+
+global proc float easeCubicInOut(float $t,float $b,float $c,float $d)
+{
+    if(($t/=$d/2)<1)
+        return ($c/2*$t*$t*$t+$b);
+    return ($c/2*(($t-=2)*$t*$t+2)+$b);
+}
+
+global proc float easeQuartIn(float $t,float $b,float $c,float $d)
+{
+    return ($c*($t/=$d)*$t*$t*$t+$b);
+}
+
+global proc float easeQuartOut(float $t,float $b,float $c,float $d)
+{
+    return (-$c*(($t=$t/$d-1)*$t*$t*$t-1)+$b);
+}
+
+global proc float easeQuartInOut(float $t,float $b,float $c,float $d)
+{
+    if(($t/=$d/2)<1)
+        return ($c/2*$t*$t*$t*$t+$b);
+    return (-$c/2 * (($t-=2)*$t*$t*$t-2)+$b);
+}
+
+global proc float easeQuintIn(float $t,float $b,float $c,float $d)
+{
+    return ($c*($t/=$d)*$t*$t*$t*$t+$b);
+}
+
+global proc float easeQuintOut(float $t,float $b,float $c,float $d)
+{
+    return ($c*(($t=$t/$d-1)*$t*$t*$t*$t+1)+$b);
+}
+
+global proc float easeQuintInOut(float $t,float $b,float $c,float $d)
+{
+    if(($t/=$d/2)<1)
+        return ($c/2*$t*$t*$t*$t*$t+$b);
+    return ($c/2*(($t-=2)*$t*$t*$t*$t+2)+$b);
+}
+
+global proc float easeSineIn(float $t,float $b,float $c,float $d)
+{
+    return (-$c * cos($t/$d * 3.141593/2)+$c+$b);
+}
+
+global proc float easeSineOut(float $t,float $b,float $c,float $d)
+{
+    return ($c*sin($t/$d*3.141593/2)+$b);
+}
+
+global proc float easeSineInOut(float $t,float $b,float $c,float $d)
+{
+    return (-$c/2 * cos(3.141593*$t/$d-1) + $b);
+}
+
+global proc float easeExpoIn(float $t,float $b,float $c,float $d)
+{
+    return (($t==0?$b:$c) * pow(10*($t/$d-1),2) + $b);
+}
+
+global proc float easeExpoOut(float $t,float $b,float $c,float $d)
+{
+    return (($t==$d?($b+$c):$c)*-1*(pow(-10*$t/$d,2)+1)+$b);
+}
+
+global proc float easeExpoInOut(float $t,float $b,float $c,float $d)
+{
+    if($t==0)
+        return $b;
+    if($t==$d)
+        return ($b+$c);
+    if(($t/=$d/2)<1)
+        return ($c/2*pow(10*($t-1),2)+$b);
+    return ($c/2*-1*(pow(-10*--$t,2)+2)+$b);
+}
+
+global proc float easeCircIn(float $t,float $b,float $c,float $d)
+{
+    return (-$c*(sqrt(1-($t/=$d)*$t)-1)+$b);
+}
+
+global proc float easeCircOut(float $t,float $b,float $c,float $d)
+{
+    return ($c * sqrt(1-($t=$t/$d-1)*$t)+$b);
+}
+
+global proc float easeCircInOut(float $t,float $b,float $c,float $d)
+{
+    if(($t/=$d/2)<1)
+        return (-$c/2*(sqrt(1-$t*$t)-1)+$b);
+    return ($c/2*(sqrt(1-($t-=2)*$t)+1)+$b);
+}
+
+global proc float easeElasticIn(float $t,float $b,float $c,float $d,float $a,float $p)
+{
+    float $s;
+    if($t==0)
+        return $b;
+    if(($t/=$d)==1)
+        return ($b+$c);
+    if(!$p)
+        $p=$d*0.3;
+    if(!$a||$a<abs($c))
+    {
+        $a=$c;
+        $s = $p/4;
+    }
+    else
+    {
+        $s = $p/(2*3.141593)*asin($c/$a);
+    }
+    return (-($a*pow(10*($t-=1),2)*sin(($t*$d-$s)*(2*3.141593)/$p))+$b);
+}
+
+global proc float easeElasticOut(float $t,float $b,float $c,float $d,float $a,float $p)
+{
+    float $s;
+    if($t==0)
+        return $b;
+    if(($t/=$d)==1)
+        return ($b+$c);
+    if(!$p)
+        $p = $d*0.3;
+    if(!$a||$a<abs($c))
+    {
+        $a=$c;
+        $s=$p/4;
+    }
+    else
+    {
+        $s = $p/(2*3.1415923)*sin($c/$a);
+    }
+    return ($a*pow(-10*$t,2)*sin(($t*$d-$s)*(2*3.1415923)/$p)+$c+$b);
+}
+
+global proc float easeElasticInOut(float $t,float $b,float $c,float $d,float $a,float $p)
+{
+    float $s;
+    if($t==0)
+        return $b;
+    if(($t/=$d/2)==2)
+        return ($b+$c);
+    if(!$p)
+        $p = $d*(0.3*1.5);
+    if(!$a||$a<abs($c))
+    {
+        $a=$c;
+        $s=$p/4;
+    }
+    else
+    {
+        $s=$p/(2*3.1415923)*asin($c/$a);
+    }
+    if($t<1)
+        return -0.5*($a*pow(10*($t-=1),2)*sin(($t*$d-$s)*(2*3.1415923)/$p))+$b;
+    return ($a*pow(-10*($t-=1),2)*sin(($t*$d-$s)*(2*3.1415923)/$p)*0.5+$c+$b);
+}
+
+global proc float easeBackIn(float $t,float $b,float $c,float $d,float $s)
+{
+    if($s==0)
+        $s=1.70158;
+    return ($c*($t/=$d)*$t*(($s+1)*$t-$s)+$b);
+}
+
+global proc float easeBackOut(float $t,float $b,float $c,float $d,float $s)
+{
+    if($s==0)
+        $s=1.70158;
+    return ($c*(($t=$t/$d-1)*$t*(($s+1)*$t+$s)+1)+$b);
+}
+
+global proc float easeBackInOut(float $t,float $b,float $c,float $d,float $s)
+{
+    if($s==0)
+        $s=1.70158;
+    if(($t/=$d/2)<1)
+        return ($c/2*($t*$t*((($s*=(1.525))+1)*$t-$s))+$b);
+    return ($c/2*(($t-=2)*$t*((($s*=(1.525))+1)*$t+$s)+2)+$b);
+}
+
+global proc float easeBounceOut(float $t,float $b,float $c,float $d)
+{
+    if(($t/=$d)<(1/2.75))
+    {
+        return ($c*(7.5625*$t*$t)+$b);
+    }else if($t<(2/2.75)){
+        return ($c*(7.5625*($t-=(1.5/2.75))*$t+0.75)+$b);
+    }else if($t<(2.5/2.75)){
+        return ($c*(7.5625*($t-=(2.25/2.75))*$t+0.9375)+$b);
+    }else{
+        return ($c*(7.5625*($t-=(2.625/2.75))*$t+0.984375)+$b);
+    }
+}
+
+global proc float easeBounceIn(float $t,float $b,float $c,float $d)
+{
+    return ($c-easeBounceOut($d-$t,0,$c,$d)+$b);
+}
+
+
+global proc float easeBounceInOut(float $t,float $b,float $c,float $d)
+{
+    if($t<$d/2)
+        return (easeBounceIn($t*2,0,$c,$d)*.5+$b);
+    else
+        return (easeBounceOut($t*2-$d,0,$c,$d)*0.5+$c*0.5+$b);
+}
+
+
+
+print (2>0?1:0);

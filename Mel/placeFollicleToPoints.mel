@@ -1,0 +1,40 @@
+global proc string createFollicle(string $uv,string $mesh)
+{
+    float $uvMat[] = `polyEditUV -q $uv`;
+    string $follicleNode = `createNode -ss "follicle"`;
+    string $follicleTr[] = `listRelatives -p $follicleNode`;
+    connectAttr -f ($follicleNode+".outTranslate") ($follicleTr[0]+".translate");
+    connectAttr -f ($follicleNode+".outRotate") ($follicleTr[0]+".rotate");
+    connectAttr -f ($mesh+".worldMesh[0]") ($follicleNode+".inputMesh");
+    connectAttr -f ($mesh+".worldMatrix") ($follicleNode+".inputWorldMatrix");
+    setAttr ($follicleNode+".parameterU") $uvMat[0];
+    setAttr ($follicleNode+".parameterV") $uvMat[1];
+    setAttr ($follicleNode+".simulationMethod") 0;
+    return $follicleTr[0];
+}
+global proc placeFollicleToPoints()
+{
+    string $vtxList[] = `ls -fl -sl`;
+    string $uvList[];
+    for($vtx in $vtxList)
+    {
+        string $uvTemp[] = `polyListComponentConversion -fv -tuv $vtx`;
+        $uvList[size($uvList)] = $uvTemp[0];
+    }
+    //string $uvlist[] = `polyListComponentConversion -fv -tuv`;
+    
+    $uvList = `ls -fl $uvList`;
+    string $temp[];
+    tokenize $uvList[0] "." $temp;
+    //print $temp;
+    string $relShapes[] =`listRelatives -ni -typ "mesh" $temp[0]`;
+    string $temps[];
+    for($i in $uvList)
+    {
+        $temps[size($temps)] = createFollicle($i,$relShapes[0]);
+    }
+    clear $uvList;
+    group -n ($relShapes[0]+"Follicle") $temps;
+    clear $temps;
+}
+catchQuiet(`placeFollicleToPoints`);

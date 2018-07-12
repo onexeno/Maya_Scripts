@@ -1,0 +1,17 @@
+
+
+
+
+string $vdb[] = `ls -sl -tr`;
+
+string $fumefx[] = `listRelatives -typ "ffxDyna" $vdb[0]`;
+
+float $length = `getAttr ($fumefx[0]+".length")`;
+float $width = `getAttr ($fumefx[0]+".width")`;
+
+
+vector $pivot = `xform -q -ws -t $vdb[0]`;
+
+vector $pos = <<$length/2 - $pivot.x,0,$width/2 - $pivot.z>>*-1;
+
+xform -ws -t ($pos.x) ($pos.y) ($pos.z) $vdb[1];

@@ -1,0 +1,100 @@
+
+global string $gRLM = "renderLayerManager";
+
+int $rlmIndices[] = `getAttr -mi ($gRLM+".renderLayerId")`;
+
+
+string $sceneLayer[] = `ls -typ "renderLayer"`;
+
+string $alreadyCtdLayer[];
+
+for($index in $rlmIndices)
+{
+    string $dests[] = `connectionInfo -dfs ($gRLM+ ".renderLayerId["+ $index+ "]")`;
+    for($dest in $dests)
+    {
+        string $temp[];
+        tokenize $dest "." $temp;
+        $alreadyCtdLayer[size($alreadyCtdLayer)] = $temp[0];
+    }
+}
+
+$alreadyCtdLayer = stringArrayRemoveDuplicates($alreadyCtdLayer);
+
+string $unusedLayer[] = stringArrayRemove($alreadyCtdLayer,$sceneLayer);
+
+
+
+
+if(`window -ex "RLM"`)
+    deleteUI "RLM";
+
+window -t "RLM" -w 300 -h 500 "RLM";
+columnLayout;
+string $testList = `textScrollList -w 300 -h 500`;
+
+
+
+
+showWindow("RLM");
+
+textScrollList -e -dcc "listRunner($testList)" $testList;
+
+for($tempLayer in $unusedLayer)
+{
+    textScrollList -e -append $tempLayer $testList;
+}
+
+
+
+global proc listRunner(string $list)
+{
+    string $selected[] = `textScrollList -q -si $list`;
+    for($select in $selected)
+    {
+        fixLayer($select);
+        textScrollList -e -ri $select $list;
+    }
+}
+
+
+
+global proc fixLayer(string $loseLayer)
+{
+    global string $gRLM;
+    string $newLayer = `duplicate -rr -ic -n ($loseLayer+"modified") ($loseLayer)`;
+    int $indexSize = `getAttr -s ($gRLM+".renderLayerId")`;
+    connectAttr -f ($gRLM+".renderLayerId["+ $indexSize +"]") ($loseLayer+"modified"+".identification");
+    setAttr ($gRLM+".renderLayerId["+ $indexSize +"]") (uniqueID()); 
+}
+
+
+
+
+global proc int uniqueID()
+{
+    global string $gRLM;
+    
+    int $ids[];
+    
+    for($i in `getAttr -mi ($gRLM+".renderLayerId")`)
+    {
+        $ids[size($ids)] = `getAttr ($gRLM+".renderLayerId["+$i+"]")`;
+    }
+    
+    int $uniqueId;
+    for($i=0;$i<=size($ids);$i++)
+    {
+        if(intArrayFind($i,0,$ids)<0)
+        {
+            $uniqueId = $i;
+            break;
+        }
+        else
+        {
+            continue;
+        }
+    }
+    return $uniqueId;
+}
+

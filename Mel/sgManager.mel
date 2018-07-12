@@ -1,0 +1,102 @@
+
+global string $relativeObjs[];
+
+global proc logTipWindow(int $number)
+{
+    if (`window -ex logTip`)
+    {
+        deleteUI logTip;
+    }
+    window -t "logTip" -w 50 -h 50 logTip;
+    string $fl = `formLayout`;
+    string $tl = `text -l ("Objs:   " + ($number))`;
+    formLayout -e -af $tl "top" 16
+                  -af $tl "left" 25 $fl;
+    showWindow logTip;
+}
+
+
+global proc getRelativeObjs()
+{
+    
+    global string $relativeObjs[];
+    string $selSG[] = `ls -sl -dag -set`;
+    if(size($selSG)==1)
+    {
+        $relativeObjs = `sets -q $selSG[0]`;
+        logTipWindow(size($relativeObjs));
+    }
+    else
+    {
+        warning "要选并且只能选一个SG节点";
+        $relativeObjs = {};
+    }
+}
+
+global proc setSG2Obj()
+{
+    global string $relativeObjs[];
+    string $selSG[] = `ls -sl -dag -set`;
+    if(size($relativeObjs)>0)
+    {
+        if(size($selSG)==1)
+        {
+            for ($obj in $relativeObjs)
+            {
+                sets -fe $selSG[0] $obj;
+            }
+        }
+        
+    }
+    else
+    {
+        warning "先点第一个按钮保存相关的mesh信息";
+    }
+    if (`window -ex logTip`)
+    {
+        deleteUI logTip;
+    }
+}
+
+
+//获取选择的SG节点
+//找到SG节点对应的Mesh并存在列表中
+//手动切换到其他层
+//点击关联，将SG节点赋予列表中的Mesh
+
+
+global proc sgManager()
+{
+    
+    if (`window -ex sgLayerManager`)
+    {
+        deleteUI sgLayerManager;
+    }
+    
+    string $relativeObjs[] = {};
+    
+    window -t "sgLayer_v0.1" -w 120 -h 90 sgLayerManager;
+    columnLayout;
+    separator -h 2;
+    button -l "Save Objs" -w 120 -h 40 -bgc 0.5 0.125 0.1 -c "getRelativeObjs()";
+    separator -h 5;
+    button -l "Assign SG " -w 120 -h 40 -bgc 0.125 0.1 0.5 -c "setSG2Obj()";
+    separator -h 2;
+    
+	if(`window -ex sgLayerManager`)
+	{
+    windowPref -r sgLayerManager;
+	}
+    showWindow sgLayerManager;
+}
+
+
+sgManager();
+
+
+
+
+
+
+
+

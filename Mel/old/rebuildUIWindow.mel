@@ -1,0 +1,51 @@
+global proc rebuildUI(int $switch)
+{
+    if($switch == 1)
+    {
+        deleteUI unifiedRenderGlobalsWindow;
+    }
+    else
+    {
+        deleteUI AEWindow;
+    }
+    buildNewSceneUI;
+}
+
+global proc rebuildUIWindow()
+{
+    if(`window -ex rebuildUIWindow`)
+    {
+        deleteUI rebuildUIWindow;
+    }
+    
+    window -t "rebuildSettings" -sizeable off rebuildUIWindow;
+    columnLayout;
+    separator -h 2;
+    button -l "Delete Render Settings" -w 120 -h 65 -c "rebuildUI(1)" -bgc 0.5 0.3 0.25 -ann "如果渲染设置窗口显示不出来就点这个试试，如果还是不行就把arnold插件关掉重开maya试试";
+    separator -h 2;
+    button -l "Delete Render View" -w 120 -h 45 -c "deleteRenderView()" -bgc 0.4 0.2 0.15 -ann "如果渲染窗口空白了，就点这个";
+    separator -h 5;
+    button -l "Delete Attribute Editor" -w 120 -h 25 -c "rebuildUI(0)" -bgc 0.3 0.3 0.3 -ann "如果属性设置窗口出错就点这个";
+    separator -h 5;
+    button -l "Fix RenderLayer BUG" -w 120 -h 25 -c "fixRenderLayerOutAdjustmentErrors" -bgc 0.3 0.3 0.3 -ann "如果切换渲染层丢材质就点这个，慎用，虽然能修复，但是每一层的材质可能会打乱";
+    separator -h 2;
+    showWindow rebuildUIWindow;
+}
+
+rebuildUIWindow();
+
+
+global proc deleteRenderView()
+{
+    string $scriptedPanels[] = `getPanel -type scriptedPanel`;
+    string $temp = "";
+    for($scriptedPanel in $scriptedPanels)
+    {
+        if(size(`match "renderWindow" $scriptedPanel`))
+        {
+            $temp = $scriptedPanel;
+            break;
+        }
+    }
+    deleteUI -panel $temp;
+}

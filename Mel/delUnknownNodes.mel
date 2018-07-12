@@ -1,0 +1,86 @@
+//global string $unknownNodes[];
+global string $nodesList;
+global proc unknownNodes()
+{
+    global string $nodesList;
+    if(`window -ex unknownWarning`)
+    {
+        deleteUI unknownWarning;
+    }
+    
+    window -t "删除未知节点" -w 257 -h 379 unknownWarning;
+    //string $scrollLayout = `scrollLayout`;
+    string $form = `formLayout -w 253 -h 50`;
+    string $b1 = `button -l "Del Sel" -w 120 -h 36 -c "deleteNodes(0)"`;
+    string $b2 = `button -l "Del All" -w 120 -h 36 -c "deleteNodes(1)"`;
+    setParent..;
+    //separator -h 40;
+    string $frame = `frameLayout -l "Shilirakaku" -la "center" -li 90 -w 257 -bv off -bgc 0.27 0.27 0.27`;
+    //这里要让frameLayout做formLayout的子级，这样才能控制位置;
+    scrollLayout -w 257 -h 1000;
+    $nodesList = `textScrollList -w 253 -h 1080 -ams on -dcc "selectListObj($nodesList)"`;
+    setParent -top; // 这里要放到最顶层
+	if(`window -ex unknownWarning`)
+	{
+		windowPref -r unknownWarning;
+	}
+    showWindow unknownWarning;
+    //scrollLayout -e -hst 0 -vst 0 -en 1 -bv 0 -nbg 0 -pe 1 $scrollLayout;
+    formLayout -e
+                -af $b1 "left" 0 
+                -af $b1 "top" 5
+                -ac $b1 "left" 0 $b2
+                -ap $b1 "left" 0 2 
+                -an $b2 "right"
+                -af $b2 "left" 5
+                -af $b2 "top" 5
+                -ap $b2 "left" 0 52 
+                -af $frame "top" 45
+               $form;
+    refreshList();
+}
+
+global proc refreshList()
+{
+    string $unknownNodes[] = `ls -typ unknown`;
+    global string $nodesList;
+    textScrollList -e -ra $nodesList;
+    for($unknown in $unknownNodes)
+    {
+        textScrollList -e -a $unknown $nodesList;
+    }
+}
+
+global proc deleteNodes(int $all)
+{
+    global string $nodesList;
+    if($all == 0)
+    {
+        string $nodes[] = `textScrollList -q -si $nodesList`;
+    
+        for ($node in $nodes)
+        {
+            lockNode -l off $node;
+            delete $node;
+        }
+        refreshList();
+    }
+    else if ($all == 1)
+    {
+        string $nodes[] = `textScrollList -q -ai $nodesList`;
+        for($node in $nodes)
+        {
+            lockNode -l off $node;
+            delete $node;
+        }
+        refreshList();
+    }
+}
+
+global proc selectListObj(string $list)
+{
+	string $listNode[] = `textScrollList -q -si $list`;
+	select -r $listNode;
+}
+
+unknownNodes;

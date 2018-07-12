@@ -1,0 +1,16 @@
+/* 这是说明
+*/
+
+
+//txt analyze
+
+//---------- Add ramp to particle Attributes with "arrayMapper" Node ----------;
+string $attrArrayMapper[] = `arrayMapper -target "particleName" -destAttr "destinationAttr" -inputV "sourceAttr" -type ramp`;
+
+string $rampMessageFromArrayMapper = `connectionInfo -sfd $attrArrayMapper[0]`;
+
+string $temp[];
+tokenize $rampMessageFromArrayMapper "." $temp;
+string $rampFromArrayMapper = $temp[0];
+
+

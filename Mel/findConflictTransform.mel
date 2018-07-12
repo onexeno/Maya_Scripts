@@ -1,0 +1,38 @@
+
+global proc string [] findConflictNode(string $nodeType,int $range)
+{
+    string $transformList[];
+    if($range == 0)
+    {
+        $transformList = `ls -sl -typ $nodeType`;
+    }
+    else
+    {
+        $transformList = `ls -typ $nodeType`;
+    }
+    
+    string $noParents[];
+    string $conflictArray[];
+    for($i=0;$i<size($transformList);$i++)
+    {
+        string $tokenBuffer[];
+        tokenize $transformList[$i] "|" $tokenBuffer;
+        $noParents[$i] = $tokenBuffer[size($tokenBuffer)-1];
+    }
+    
+    
+    for($i=0;$i<size($noParents);$i++)
+    {
+        if(stringArrayCount($noParents[$i],$noParents)>1)
+        {
+            $conflictArray[size($conflictArray)] = $transformList[$i];
+            //print($transform+"\t:\t"+stringArrayCount($transform,$noParents)+"\n");
+        }
+    }
+    return $conflictArray;
+}
+
+float $timex = `timerX`;
+select("-r",findConflictNode("transform",0));
+print(`timerX -st $timex`);
+

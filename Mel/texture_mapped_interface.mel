@@ -1,0 +1,96 @@
+if(`window -ex TEXTUREMAPPEDINTERFACE`)
+    deleteUI TEXTUREMAPPEDINTERFACE;
+
+global string $gTexFields[], $gLabelTexts[],$gTexButtons[];
+
+window -t "Texture Mapped Window" -w 300 -h 600 -cc "clear($gTexFields);clear($gLabelTexts)" TEXTUREMAPPEDINTERFACE;
+rowLayout -nc 2;
+rowColumnLayout -nc 4 TEXTUREMAINLAYOUT;
+
+//----------------Set the separator-----------------
+separator -vis false -h 15 -w 150;
+separator -vis false -h 20 -w 5;
+separator -vis false -h 15 -w 200;
+separator -vis false -h 15 -w 30;
+//----------------Set the separator-----------------
+
+//Initialize the window
+text -al "right" -l "Texture Type"-w 150 -p TEXTUREMAINLAYOUT;
+separator -vis false -h 20 -w 5;
+string $inputField = `textField -pht "Input your extra texture type here"`;
+button -w 30 -l "Add" -c "buttonTemplate(`textField -q -tx $inputField`)" -p TEXTUREMAINLAYOUT;
+
+//----------------Set the separator-----------------
+separator -vis false -h 15 -w 150;
+separator -vis false -h 20 -w 5;
+separator -vis false -h 15 -w 200;
+separator -vis false -h 15 -w 30;
+//----------------Set the separator-----------------
+setParent..;
+button -l "Complete" -c "buttonCommand()";
+
+showWindow TEXTUREMAPPEDINTERFACE;
+
+global proc buttonTemplate(string $labelContent)
+{
+    global string $gTexFields[], $gLabelTexts[], $gTexButtons[];
+    
+    string $tempLabelText = `text -al "right" -l $labelContent -w 150 -p TEXTUREMAINLAYOUT`;
+    separator -vis false -h 1 -w 5 -p TEXTUREMAINLAYOUT;
+    string $tempTextField = `textField -pht ("C:/Users/Administrator/Documents/Maya/Projects/Default/sourceimages/JXB_DaBai_"+$labelContent+"_.jpg") -w 600 -p TEXTUREMAINLAYOUT`;
+    //eval("iconTextButton -w 30 -ua true -i" + "\""+"dropText.xpm"+"\"" + " -c " + "\""+"fileLoader("+"\""+$tempTextField+"\""+")"+"\"" + "-p TEXTUREMAINLAYOUT");
+    eval("iconTextButton -c " + "\"fileLoader("+"\\"+"\""+ $tempTextField+"\\"+"\"" + ")\" -i " + "\"" + "dropText.xpm" + "\" -p TEXTUREMAINLAYOUT");
+    $gTexFields[size($gTexFields)] = $tempTextField;
+    $gLabelTexts[size($gLabelTexts)] = $tempLabelText;
+}
+
+global proc fileLoader(string $textField)
+{
+    string $getNames[] = `fileDialog2 -fm 1 -cap "Texture Path Selector" -ff "All File(*.*)"`;
+    //print $getNames[0];
+    if(size($getNames)==1)
+    {
+        textField -e -tx ($getNames[0]) $textField;
+    }
+}
+
+string $nameTemplate[] = {"Color_Light_Map",
+                          "Color_Dark_Map",
+                          "Color_Drawn_Line",
+                          "Mask_Shadow_Drawn",
+                          "Mask_Shadow_Projection"};
+
+for ($i=0;$i<5;$i++)
+{
+    buttonTemplate($nameTemplate[$i]);
+}
+
+global proc buttonCommand()
+{
+    global string $gTexFields[];
+    for($textField in $gTexFields)
+    {
+        print(`textField -q -tx $textField` + "  |  " + $textField + "\n");
+    }
+}
+
+
+
+
+/*
+global string $tempTextFields[],$tempButton[];
+
+global proc buttonTemplate(string $labelContent)
+{
+    global string $tempTextFields[],$tempButton[];
+    text -al "center" -l $labelContent -w 150 -p TEXTUREMAINLAYOUT;
+    $tempTextFields[size($tempTextFields)] = `textField -pht ("C:/Users/Administrator/Documents/Maya/Projects/Default/sourceimages/JXB_DaBai_"+$labelContent+"_.jpg") -w 600 -p TEXTUREMAINLAYOUT`;
+    $tempButton[size($tempButton)] = `iconTextButton -w 30 -ua true -i "dropText.xpm" -p TEXTUREMAINLAYOUT`;
+}
+
+clear $tempTextFields;
+clear $tempButton;
+
+print $tempTextFields;
+print $tempButton;
+*/

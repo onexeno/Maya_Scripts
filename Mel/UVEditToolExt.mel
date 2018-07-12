@@ -1,0 +1,472 @@
+
+global proc float [] getUVPivotAverage(string $uvPatch[])
+{
+    float $uvTemp[] = `polyEditUV -q $uvPatch`;
+    float $up,$vp;
+    for($i=0;$i<size($uvTemp);$i+=2)
+    {
+        $up += $uvTemp[$i]/size($uvTemp)*2;
+        $vp += $uvTemp[$i+1]/size($uvTemp)*2;
+    }
+    float $result[];
+    $result[0] = $up;
+    $result[1] = $vp;
+    return $result;
+}
+
+global proc float [] getUVPivot()
+{
+    string $sel[] = `ls -sl`;
+    string $temp[];
+    tokenize($sel[0],".",$temp);
+    float $result[] = `getAttr ($temp[0]+".uvPivot")`;
+    return $result;
+}
+
+global proc moveUV(float $uoffset,float $voffset)
+{
+    polyEditUV -u $uoffset -v $voffset;
+}
+
+global proc rotateUV(float $angle)
+{
+    float $pivot[] = getUVPivot();
+    polyEditUV -pu $pivot[0] -pv $pivot[1] -a $angle;
+    //polyRotateUVs $angle;
+}
+
+global proc scaleUV(float $uScale,float $vScale)
+{
+    float $pivot[] = getUVPivot();
+    polyEditUV -pu $pivot[0] -pv $pivot[1] -su $uScale -sv $vScale;
+}
+
+
+global proc buttonCommand(string $floatSlider,string $direction,string $cb1,string $rb1,string $rb2)
+{
+    global string $selUVShell[];
+    float $tempValue = `floatField -q -v $floatSlider`;
+    switch($direction)
+    {
+        case "up":
+            if(`checkBox -q -v $cb1`==0)
+            {
+                moveUV(0,$tempValue);
+            }
+            else
+            {
+                moveTwoPatch($selUVShell,0,$tempValue,$rb1,$rb2);
+            }
+            break;
+        case "down":
+            if(`checkBox -q -v $cb1`==0)
+            {
+            moveUV(0,-1*$tempValue);
+            }
+            else
+            {
+                moveTwoPatch($selUVShell,0,-1*$tempValue,$rb1,$rb2);
+            }
+            break;
+        case "left":
+            if(`checkBox -q -v $cb1`==0)
+            {
+                moveUV(-1*$tempValue,0);
+            }
+            else
+            {
+                moveTwoPatch($selUVShell,-1*$tempValue,0,$rb1,$rb2);
+            }
+            break;
+        case "right":
+            if(`checkBox -q -v $cb1`==0)
+            {
+                moveUV($tempValue,0);
+            }
+            else
+            {
+                moveTwoPatch($selUVShell,$tempValue,0,$rb1,$rb2);
+            }
+            break;
+        case "upLeft":
+            if(`checkBox -q -v $cb1`==0)
+            {
+                moveUV(-1*$tempValue,$tempValue);
+            }
+            else
+            {
+                moveTwoPatch($selUVShell,-1*$tempValue,$tempValue,$rb1,$rb2);
+            }
+            break;
+        case "upRight":
+            if(`checkBox -q -v $cb1`==0)
+            {
+                moveUV($tempValue,$tempValue);
+            }
+            else
+            {
+                moveTwoPatch($selUVShell,$tempValue,$tempValue,$rb1,$rb2);
+            }
+            break;
+        case "downLeft":
+            if(`checkBox -q -v $cb1`==0)
+            {
+                moveUV(-1*$tempValue,-1*$tempValue);
+            }
+            else
+            {
+                moveTwoPatch($selUVShell,-1*$tempValue,-1*$tempValue,$rb1,$rb2);
+            }
+            break;
+        case "downRight":
+            if(`checkBox -q -v $cb1`==0)
+            {
+                moveUV($tempValue,-1*$tempValue);
+            }
+            else
+            {
+                moveTwoPatch($selUVShell,$tempValue,-1*$tempValue,$rb1,$rb2);
+            }
+            break;
+        default:
+            break;
+    }
+}
+
+global proc rotateButton(string $field,string $cb1)
+{
+    global string $selUVShell[];
+    float $angle = `floatField -q -v $field`;
+    if(`checkBox -q -v $cb1`==1)
+    {
+        rotateTwoPatch($selUVShell,$angle);
+    }
+    else
+    {
+        rotateUV $angle;
+    }
+}
+
+global proc syncField(string $field,string $fieldSlider)
+{
+    float $temp = `floatSliderGrp -q -v $fieldSlider`;
+    floatField -e -v $temp $field;
+}
+
+global proc setPrecise(string $floatSliderGrp,string $intSliderGrp)
+{
+    int $pre = `intSliderGrp -q -v $intSliderGrp`;
+    floatSliderGrp -e -pre $pre $floatSliderGrp;
+
+}
+
+global proc lockScaleField(string $field1,string $field2)
+{
+    if(`floatField -q -en $field2` == 0)
+    {
+        floatField -e -en on $field2;
+    }
+    else
+    {
+        floatField -e -en off $field2;
+        float $temp = `floatField -q -v $field1`;
+        floatField -e -v $temp $field2;
+    }
+}
+
+global proc scaleButton(string $field1,string $field2,string $switchField,string $cb1,string $rb1,string $rb2)
+{
+    global string $selUVShell[];
+    
+    switch($switchField)
+    {
+        case "scaleU":
+        {
+            //global string $genCommand;
+            if(`checkBox -q -v $cb1`==0)
+            {
+                if(`floatField -q -en $field2`==0)
+                {
+                    float $temp = `floatField -q -v $field1`;
+                    scaleUV($temp,$temp);
+                }
+                else
+                {
+                    float $temp = `floatField -q -v $field1`;
+                    scaleUV($temp,1);
+                }
+            }
+            else
+            {
+                if(`floatField -q -en $field2`==0)
+                {
+                    float $temp = `floatField -q -v $field1`;
+                    scaleTwoPatch($selUVShell,$temp,$temp,$rb1,$rb2);
+                }
+                else
+                {
+                    float $temp = `floatField -q -v $field1`;
+                    scaleTwoPatch($selUVShell,$temp,1,$rb1,$rb2);
+                }
+            }
+            //$genCommand = "";
+            break;
+        }
+        case "scaleV":
+        {
+            //global string $genCommand;
+            if(`checkBox -q -v $cb1`==0)
+            {
+                float $temp = `floatField -q -v $field2`;
+                scaleUV(1,$temp);
+            }
+            else
+            {
+                float $temp = `floatField -q -v $field2`;
+                scaleTwoPatch($selUVShell,1,$temp,$rb1,$rb2);
+            }
+            //$genCommand = "";
+            break;
+        }
+        default:
+        {
+            //global string $genCommand;
+            //$genCommand = "";
+            break;
+        }
+    }
+}
+
+global proc symmCheck(string $rb1,string $rb2,string $button,string $reset)
+{
+    global string $b1,$b2,$b3,$b4,$b5,$b6,$b7,$b8,$cb1,$rb1,$rb2,$f1,$f2,$f3,$b9,$reset,$b9,$shellButton;
+    if(`checkBox -q -v $cb1` == 1)
+    {
+        radioButton -e -en 1 $rb1;
+        radioButton -e -en 1 $rb2;
+        button -e -en on $button;
+        button -e -en on $reset;
+    }
+    else
+    {
+        radioButton -e -en 0 $rb1;
+        radioButton -e -en 0 $rb2;
+    }
+}
+
+global proc resetButton(string $button)
+{
+    global string $selUVShell[];
+    global int $buttonPressTimes;
+    $buttonPressTimes = 0;
+    clear $selUVShell;
+    button -e -en on -l "Click" -bgc 0.36 0.36 0.36 $button;   
+}
+
+
+global proc UVEditToolExt()
+{
+    global string $selUVShell[];
+    global int $buttonPressTimes;
+    //global int $lastCommandRuns;
+    //global string $genCommand;
+    global string $b1,$b2,$b3,$b4,$b5,$b6,$b7,$b8,$cb1,$rb1,$rb2,$f1,$f2,$f3,$b9,$reset,$b9,$shellButton,$field1;
+    if(`window -ex UVEditToolExt`)
+        deleteUI UVEditToolExt;
+        
+    window -t "UVEditToolExt_v1.1" -s off UVEditToolExt;
+    columnLayout;
+    //string $field1;
+    rowLayout -nc 2;
+    $form = `formLayout`;
+    $b1 = `button -aop on -l "∧" -c "buttonCommand($field1,\"up\",$cb1,$rb1,$rb2)" -w 40 -h 20 -bgc 0.36 0.12 0.36 -p $form`;
+    $b2 = `button -l "∨" -c "buttonCommand($field1,\"down\",$cb1,$rb1,$rb2)" -w 40 -h 20 -bgc 0.36 0.12 0.36 -p $form`;
+    $b3 = `button -l "＜" -c "buttonCommand($field1,\"left\",$cb1,$rb1,$rb2)" -w 20 -h 20 -bgc 0.36 0.12 0.36 -p $form`;
+    $b4 = `button -l "＞" -c "buttonCommand($field1,\"right\",$cb1,$rb1,$rb2)" -w 20 -h 20 -bgc 0.36 0.12 0.36 -p $form`;
+    $b5 = `button -l "◤" -c "buttonCommand($field1,\"upLeft\",$cb1,$rb1,$rb2)" -w 20 -h 20 -bgc 0.26 0.12 0.26 -p $form`;
+    $b6 = `button -l "◣" -c "buttonCommand($field1,\"downLeft\",$cb1,$rb1,$rb2)" -w 20 -h 20 -bgc 0.26 0.12 0.26 -p $form`;
+    $b7 = `button -l "◥" -c "buttonCommand($field1,\"upRight\",$cb1,$rb1,$rb2)" -w 20 -h 20 -bgc 0.26 0.12 0.26 -p $form`;
+    $b8 = `button -l "◢" -c "buttonCommand($field1,\"downRight\",$cb1,$rb1,$rb2)" -w 20 -h 20 -bgc 0.26 0.12 0.26 -p $form`;
+    $field1 = `floatField -w 40 -pre 4 -v 1`;
+    setParent..;
+    columnLayout;
+    //string $uSliders = `floatSliderGrp -ann "移动量度" -pre 3 -step 0.001 -v 0.5 -min 0 -max 1 -w 300 -field on`;
+    //string $precise = `intSliderGrp -ann "移动精度"  -v 3 -min 0 -max 6 -w 300 -cc "setPrecise($uSliders,$precise)" -field on`;
+    rowColumnLayout -nc 5;
+    columnLayout;
+    $cb1 = `checkBox -h 20 -l "Symm"`;
+    
+    radioCollection;
+    $rb1 = `radioButton -en off -sl -h 20 -l "X"`;
+    $rb2 = `radioButton -en off -h 20 -l "Y"`;
+    setParent..;
+    
+    columnLayout;
+    text -h 20 -l "Scale U :";
+    text -h 20 -l "Scale V :";
+    text -h 20 -l "Rotate :";
+    setParent..;
+    columnLayout;
+    
+    $f1 = `floatField -v 1 -cc "scaleButton($f1,$f2,\"scaleU\",$cb1,$rb1,$rb2)" -ec "scaleButton($f1,$f2,\"scaleU\",$cb1,$rb1,$rb2)"`;
+    $f2 = `floatField -v 1 -cc "scaleButton($f1,$f2,\"scaleV\",$cb1,$rb1,$rb2)" -ec "scaleButton($f1,$f2,\"scaleV\",$cb1,$rb1,$rb2)"`;
+    $f3 = `floatField -v 0 -cc "rotateButton($f3,$cb1)" -ec "rotateButton($f3,$cb1)"`;
+    setParent..;
+    string $form2 = `formLayout -h 20`;
+    $b9 = `button -w 10 -h 30 -l "]" -c "lockScaleField($f1,$f2)"`;
+    $reset = `button -en off -w 10 -h 20 -l "." -c "resetButton($shellButton)"`; 
+    formLayout -e -af $b9 "top" 6 
+                  -af $reset "top" 40
+               $form2;
+    setParent..;
+    columnLayout;
+    $shellButton = `button -l "Click" -en off -w 60 -h 60 -bgc 0.36 0.36 0.36 -c "setUV($shellButton)"`;
+    setParent..;
+    
+    setParent..;
+    
+    setParent..;
+    
+    formLayout -e -af $b1 "top" 5
+                  -af $b1 "left" 25
+                  -af $b5 "top" 5
+                  -af $b5 "left" 5
+                  -af $b7 "top" 5
+                  -af $b7 "left" 65
+                  -af $b3 "top" 25
+                  -af $b3 "left" 5
+                  -af $b4 "top" 25
+                  -af $b4 "left" 65
+                  -af $b6 "top" 45
+                  -af $b6 "left" 5
+                  -af $b2 "top" 45
+                  -af $b2 "left" 25
+                  -af $b8 "top" 45
+                  -af $b8 "left" 65
+                  -af $field1 "top" 25
+                  -af $field1 "left" 25
+                  $form;
+    checkBox -e -onc "symmCheck($rb1,$rb2,$shellButton,$reset)" -ofc "symmCheck($rb1,$rb2,$shellButton,$reset)" $cb1;
+    showWindow;
+}
+
+
+
+global string $selUVShell[];
+global int $buttonPressTimes = 0;
+
+global proc string [] setUV(string $button)
+{
+    //global int $uvTimes;
+    global int $buttonPressTimes;
+    $buttonPressTimes++;
+    //button -e -l ("Shell" + ($buttonPressTimes)) $button;
+    if($buttonPressTimes==1)
+    {
+        button -e -l "FC" -bgc 0.3 0.05 0.0 $button;
+    }
+    else if($buttonPressTimes==2)
+    {
+        button -e -l "SC" -bgc 0.5 0.05 0.05 $button;
+    }
+    if($buttonPressTimes>1)
+    {
+        disable $button;
+    }
+    global string $selUVShell[];
+    if(size($selUVShell)==0)
+    {
+        $selUVShell = `ls -sl`;
+        $selUVShell = `polyListComponentConversion -tuv $selUVShell`;
+        int $uvTimes = 1;
+        if($uvTimes==1)
+        {
+            //$selUVShell[size($selUVShell)] = $uvTimes;
+            stringArrayInsertAtIndex(0,$selUVShell,"1");
+        }
+    }
+    else
+    {
+        string $temp[] = `ls -sl`;
+        $temp = `polyListComponentConversion -tuv $temp`;
+        $selUVShell = stringArrayCatenate($temp,$selUVShell);
+    }
+    return $selUVShell;
+}
+
+
+
+global proc moveTwoPatch(string $array[],float $uoffset,float $voffset,string $rb1,string $rb2)
+{
+    int $index = stringArrayFind("1",0,$array);
+    string $temp1[],$temp2[];
+    for($i=0;$i<$index;$i++)
+    {
+        $temp1[size($temp1)] = $array[$i];
+    }
+    for($j=$index+1;$j<size($array);$j++)
+    {
+        $temp2[size($temp2)] = $array[$j];
+    }
+    if(`radioButton -q -sl $rb2`==1)
+    {
+        polyEditUV -u $uoffset -v $voffset $temp1;
+        polyEditUV -u (-1*$uoffset) -v ($voffset) $temp2;
+    }
+    else if (`radioButton -q -sl $rb1`==1)
+    {
+        polyEditUV -u $uoffset -v $voffset $temp1;
+        polyEditUV -u ($uoffset) -v (-1*$voffset) $temp2;
+    }
+}
+
+global proc scaleTwoPatch(string $array[],float $uscale,float $vscale,string $rb1,string $rb2)
+{
+    int $index = stringArrayFind("1",0,$array);
+    string $temp1[],$temp2[];
+    for($i=0;$i<$index;$i++)
+    {
+        $temp1[size($temp1)] = $array[$i];
+    }
+    for($j=$index+1;$j<size($array);$j++)
+    {
+        $temp2[size($temp2)] = $array[$j];
+    }
+    float $apatchPivot[] = getUVPivotAverage($temp1);
+    float $bpatchPivot[] = getUVPivotAverage($temp2);
+    if(`radioButton -q -sl $rb1`==1)
+    {
+        polyEditUV -pu $apatchPivot[0] -pv $apatchPivot[1] -su $uscale -sv $vscale $temp1;
+        polyEditUV -pu $bpatchPivot[0] -pv $bpatchPivot[1] -su (-$uscale) -sv $vscale $temp2;
+    }
+    else if(`radioButton -q -sl $rb2`==1)
+    {
+        polyEditUV -pu $apatchPivot[0] -pv $apatchPivot[1] -su $uscale -sv $vscale $temp1;
+        polyEditUV -pu $bpatchPivot[0] -pv $bpatchPivot[1] -su $uscale -sv (-$vscale) $temp2;
+    }
+}
+
+global proc rotateTwoPatch(string $array[],float $angle)
+{
+    int $index = stringArrayFind("1",0,$array);
+    string $temp1[],$temp2[];
+    for($i=0;$i<$index;$i++)
+    {
+        $temp1[size($temp1)] = $array[$i];
+    }
+    for($j=$index+1;$j<size($array);$j++)
+    {
+        $temp2[size($temp2)] = $array[$j];
+    }
+    float $apatchPivot[] = getUVPivotAverage($temp1);
+    float $bpatchPivot[] = getUVPivotAverage($temp2);
+
+    polyEditUV -pu $apatchPivot[0] -pv $apatchPivot[1] -a $angle $temp1;
+    polyEditUV -pu $bpatchPivot[0] -pv $bpatchPivot[1] -a (-$angle) $temp2;
+}
+
+
+
+//scaleTwoPatch($selUVShell,0.5,1);
+//rotateTwoPatch($selUVShell,-45);
+

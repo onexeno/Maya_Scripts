@@ -1,0 +1,84 @@
+
+global proc string [] createTexture2D(string $name,string $type)
+{
+    string $tex2D = `shadingNode -n ($name+"_placement2DTexture") -asUtility "place2dTexture"`;
+    string $texNode = `shadingNode -n ($name+"_"+$type) -asUtility $type`;
+    if($type == "file")  //Only File Node has these attr, the system texture do not have these attr;
+    {
+        connectAttr -f ($tex2D+".coverage") ($texNode+".coverage");
+        connectAttr -f ($tex2D+".translateFrame") ($texNode+".translateFrame");
+        connectAttr -f ($tex2D+".rotateFrame") ($texNode+".rotateFrame");
+        connectAttr -f ($tex2D+".mirrorU") ($texNode+".mirrorU");
+        connectAttr -f ($tex2D+".mirrorV") ($texNode+".mirrorV");
+        connectAttr -f ($tex2D+".stagger") ($texNode+".stagger");
+        connectAttr -f ($tex2D+".wrapU") ($texNode+".wrapU");
+        connectAttr -f ($tex2D+".wrapV") ($texNode+".wrapV");
+        connectAttr -f ($tex2D+".repeatUV") ($texNode+".repeatUV");
+        connectAttr -f ($tex2D+".offset") ($texNode+".offset");
+        connectAttr -f ($tex2D+".rotateUV") ($texNode+".rotateUV");
+        connectAttr -f ($tex2D+".noiseUV") ($texNode+".noiseUV");
+        connectAttr -f ($tex2D+".vertexUvOne") ($texNode+".vertexUvOne");
+        connectAttr -f ($tex2D+".vertexUvTwo") ($texNode+".vertexUvTwo");
+        connectAttr -f ($tex2D+".vertexUvThree") ($texNode+".vertexUvThree");
+        connectAttr -f ($tex2D+".vertexCameraOne") ($texNode+".vertexCameraOne");
+    }
+
+    connectAttr ($tex2D+".outUV") ($texNode+".uv");
+    connectAttr ($tex2D+".outUvFilterSize") ($texNode+".uvFilterSize");
+    return {$texNode,$tex2D};
+}
+
+global proc string [] createTextureProjection(string $name,string $type)
+{
+    string $tex2D[] = createTexture2D($name,$type);
+    string $projection = `shadingNode -n ($name+"_projection") -asTexture projection`;
+    string $tex3D = `shadingNode -n ($name+"_placement3DTexture") -asUtility place3dTexture`;
+
+    connectAttr ($tex3D+".wim[0]") ($projection+".pm");
+    connectAttr ($tex2D[0]+".outColor") ($projection+".image");
+    return {$projection,$tex2D[0],$tex3D};
+}
+
+global proc string [] createSamplerRampOrCondition(string $name,int $viewOrRender,int $rampOrCondition)
+{
+    string $sampler,$colorControl,$samplerOutValue,$controlOutValue;
+    
+    if($viewOrRender == 0)
+    {
+        $sampler = `shadingNode -n ($name+"_viewSampler") -as lambert`;
+        setAttr ($sampler+".diffuse") 1.0;
+        setAttr ($sampler+".color") 1.0 1.0 1.0;
+        $samplerOutValue = ".outColorR";
+    }
+    else
+    {
+        $sampler = `shadingNode -n ($name+"_renderSampler") -au surfaceLuminance`;
+        $samplerOutValue = ".outValue";
+    }
+    if($rampOrCondition == 0)
+    {
+        $colorControl = `shadingNode -n ($name+"_ramp") -au ramp`;
+        connectAttr -f ($sampler+$samplerOutValue) ($colorControl+".vCoord");
+    }
+    else
+    {
+        $colorControl = `shadingNode -n ($name+"_condition") -au condition`;
+        connectAttr -f ($sampler+$samplerOutValue) ($colorControl+".firstTerm");
+    }
+    return {$colorControl,$sampler};
+}
+
+
+
+
+
+
+/*
+    按钮 “Face Material” -> 贴图 “Texture Path Mapped Window”
+                            -------- Light Color Map --------
+                            -------- Dark Color Map --------
+                            -------- Painted Shadow Mask --------
+                            -------- Extra Shadow Mask --------
+                            -------- Painted Figure Map --------
+                            
+*/

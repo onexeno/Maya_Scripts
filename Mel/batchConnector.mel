@@ -1,0 +1,44 @@
+global proc string [] connectTemplate(string $sourceNode,string $targetNode)
+{
+    string $sourcePlug[];
+    string $targetPlug[];
+    string $sourceConnections[] = `listConnections -s off -c on -p on $sourceNode`;
+    for($i=0;$i<size($sourceConnections);$i++)
+    {
+        string $temp[];
+        tokenize ($sourceConnections[$i+1]) "." $temp;
+        if($temp[0] == $targetNode)
+        {
+            $sourcePlug[size($sourcePlug)] = $sourceConnections[$i];
+            $targetPlug[size($targetPlug)] = $sourceConnections[$i+1];
+        }
+    }
+
+    return stringArrayCatenate($sourcePlug,$targetPlug);
+}
+
+
+
+
+
+
+
+string $list[] = `ls -sl`;
+
+global proc connector(string $sourceList[],string $targetList,string $sourceNode,string $targetNode)
+{
+	int errorindex[];
+	for(int i=0;i<size(&sourceList);i++)
+	if(isConnected &sourceNode+&sourceList[i] &targetNode+&targetList[i])
+	continue;
+	else
+	if(catchQuiet(connectAttr &sourceNode+&sourceList[i] &targetNode+&targetList[i])
+	errorindex[size(errorindex)] = i;
+	
+	
+}
+
+
+
+
+print(batchConnector($list[0],$list[1]));

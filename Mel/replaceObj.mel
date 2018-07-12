@@ -1,0 +1,27 @@
+string $objList[] = `ls -sl -tr`;
+
+
+proc vector calScale(float $array[])
+{
+    return <<$array[3]-$array[0],$array[4]-$array[1],$array[5]-$array[2]>>;
+}
+
+for($i=0;$i<size($objList);$i++)
+{
+    
+    vector $srcPos = `xform -q -ws -t $objList[$i]`;
+    vector $srcRot = `xform -q -ws -rotation $objList[$i]`;
+
+    string $aiStd = `duplicate -rr $objList[size($objList)]` 
+
+    xform -ws -t ($srcPos.x) ($srcPos.y) ($srcPos.z) $aiStd;
+    xform -ws -rotation ($srcRot.x) ($srcRot.y) ($srcRot.z) $aiStd];
+
+
+    float $srcBBox[] = `xform -q -ws -bb $objList[0]`;
+    float $tarBBox[] = `xform -q -ws -bb $aiStd`;
+
+    vector $scaleCoef = calScale($srcBBox)/calScale($tarBBox);
+
+    xform -ws -scale ($scaleCoef.x) ($scaleCoef.y) ($scaleCoef.z) $aiStd;
+}

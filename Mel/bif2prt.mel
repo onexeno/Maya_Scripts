@@ -1,0 +1,19 @@
+string $filePath[] = `fileDialog2 -fm 3 -cap "Choose Path"`;
+
+string $allBif[] = `getFileList -fs "*.bif" -fld $filePath[0]`;
+
+int $count = 0;
+int $max = size($allBif);
+progressWindow -t "Converting" -ii true -pr $count -max $max;
+
+for($bif in $allBif)
+{
+    string $temp[];
+    tokenize $bif "." $temp;
+    $count++;
+    progressWindow -e -pr $count;
+    print("Converting " + toNativePath($filePath[0])+"\\"+$bif + " is finished\n");
+    system("bif2prt -vel -pos -vor -den -f " + toNativePath($filePath[0]) + "\\" + $bif + " -o " + toNativePath($filePath[0]) + "\\" + $temp[0] + "." + $temp[1] +".prt");  
+}
+progressWindow -e -ep;
+

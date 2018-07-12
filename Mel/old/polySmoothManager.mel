@@ -1,0 +1,181 @@
+//global string $xformLists[],$prunLists[];
+
+global proc string [] list()
+{
+    //global string $xformLists[],$prunLists[];
+    string $xformLists[] = `ls -sl -tr`;
+    string $prunLists[] = {};
+    for($xform in $xformLists)
+    {
+        string $shapes[] = `listRelatives -f -s $xform`;
+        stringArrayInsertAtIndex(0,$prunLists,$shapes[0]);
+    }
+    return $prunLists;
+}
+
+global proc string [] findSmoothNode(string $shape)
+{
+    string $history[] = `listHistory $shape`;
+        //stringArrayFind(0,"polySmoothFace",$history);
+    string $temps[] = {};
+    for($node in $history)
+    {
+        if(`nodeType $node` == "polySmoothFace")
+        {
+            stringArrayInsertAtIndex(0,$temps,$node);
+        }
+    }
+    //print $temps;
+    return $temps;
+}
+
+global proc string [] findskinClusterNode(string $shape)
+{
+    string $history[] = `listHistory $shape`;
+        //stringArrayFind(0,"polySmoothFace",$history);
+    string $temps[] = {};
+    for($node in $history)
+    {
+        if(`nodeType $node` == "skinCluster")
+        {
+            stringArrayInsertAtIndex(0,$temps,$node);
+        }
+    }
+    //print $temps;
+    return $temps;
+}
+
+//for($shape in $prunLists)
+
+global proc string [] finalSmoothNodes(string $shape)
+{
+    string $smoothNodes[] = {};
+    string $skinClusterNodes[] = findskinClusterNode($shape);
+    if(size($skinClusterNodes) != 1 )
+    {
+        $smoothNodes = findSmoothNode($shape);
+    }
+    else
+    {
+        string $afterSkinClusterNodes[] = `listHistory -f 1 $skinClusterNodes[0]`;
+        for($nodes in $afterSkinClusterNodes)
+        {
+            if(`nodeType $nodes` == "polySmoothFace")
+            {
+                stringArrayInsertAtIndex(0,$smoothNodes,$nodes);
+            }
+        }
+    }
+    print $smoothNodes;
+    //print $skinClusterNodes;
+    return $smoothNodes;
+}
+
+global proc polySmoothManager()
+{
+    global string $tsl1,$tsl2,$tsl3,$fFGp1;
+    if(`window -ex polySmoothManager`)
+        deleteUI polySmoothManager;
+    
+    window -t "FindSmoothNodes"  -w 405 polySmoothManager;
+    columnLayout;
+    rowLayout -nc 4;
+        string $fFGp1 = `intSliderGrp -v 1 -field true -max 6 -min 0 -w 200`;
+        button -l "Set it" -w 73 -h 25 -c "setAttrValues($tsl2)";
+        button -l "List" -w 73 -h 25 -c "attachToUI()";
+        button -l "Select" -w 51 -h 25 -c "listSel($tsl2)";
+        setParent..;
+    setParent..;
+    rowLayout -nc 4 -w 405;
+            string $tsl1 = `textScrollList -w 200 -h 600`;
+            string $tsl2 = `textScrollList -w 175 -h 600 -ams 1`;
+            string $tsl3 = `textScrollList -w 25 -h 600`;
+            setParent..;
+    setParent..;
+    
+    //setParent..;
+    if(`window -ex polySmoothManager`)
+    {
+    windowPref -r polySmoothManager;
+    }
+    showWindow polySmoothManager;
+}
+
+global proc attachToUI()
+{
+    
+    //global string $xformLists[],$prunLists[];
+    global string $tsl1,$tsl2,$tsl3,$fFGp1;
+    textScrollList -e -ra $tsl1;
+    textScrollList -e -ra $tsl2;
+    textScrollList -e -ra $tsl3;
+    string $objList[] = list();
+    for($shape in $objList)
+    {
+        string $smoothNodes[] = finalSmoothNodes($shape);
+        if(size($smoothNodes)>0)
+        {
+            textScrollList -e -a ($shape) $tsl1;
+            for($nodes in $smoothNodes)
+            {    
+                //textScrollList -e -a ("|-->>") $tsl1;
+                textScrollList -e -a $nodes $tsl2;
+                int $div = `getAttr ($nodes+".divisions")`;
+                textScrollList -e -a $div $tsl3;
+            }
+            for($i=0;$i<size($smoothNodes)-1;$i++)
+            {
+                textScrollList -e -a ("^Up^ x" +($i+2)+"|>>") $tsl1;
+            } 
+        }
+    }
+}
+
+global proc selectScrollListItem(string $scrollList,int $selSwitch)
+{
+    string $selItem[] = `textScrollList -q -si $scrollList`;
+    if($selSwitch >= 1)
+    {
+        select -r $selItem;
+    }
+}
+//selectScrollListItem($tsl2,1)
+
+global proc setAttrValues(string $scrollList)
+{
+    global string $xformLists[],$prunLists[];
+    global string $fFGp1;
+    string $selItems[] = `textScrollList -q -si $scrollList`;
+    int $value = `intSliderGrp -q -v $fFGp1`;
+    if($value<=2)
+    {
+        for($item in $selItems)
+        {
+            setAttr ($item+".divisions") $value;
+        }
+        attachToUI();
+    }
+    else
+    {
+        confirmDialog -t "Warning" -m "Are you Sure?" -db "Confirm";
+        for($item in $selItems)
+        {
+            setAttr ($item+".divisions") $value;
+        }
+        attachToUI();
+    }
+}
+
+
+
+global proc listSel(string $list)
+{
+    string $listSelObj[] = `textScrollList -q -si $list`;
+    select -r $listSelObj;
+}
+
+polySmoothManager();
+
+
+
+    

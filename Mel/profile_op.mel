@@ -1,0 +1,93 @@
+/*
+    Operate the txt file ->
+        1.Save the profile
+        2.Load the profile
+
+    Profile content:
+        1.Texture Label
+        {label1}\n
+        {label2}\n
+        {label3}\n
+        .
+        .
+        .
+        {labelm}\n;
+*/
+
+global proc writeToFile(string $list[],string $filenamePath)
+{
+    int $fileId = `fopen ($filenamePath) "w"`;  //打开文件 并返回打开序号
+    for($i=0,$j=1;$i<size($list);$i+=2,$j+=2)
+    {
+        fprint $fileId ($list[$i] + "*" + $list[$j] + "\n");  //在路径和标签中间加上"*"，方便提取
+    }
+    fclose $fileId;  //关闭文件
+}
+
+global proc string [] readFromFile(string $filenamePath)
+{
+    if(`filetest -r ($filenamePath)`)   //检测文件是否存在
+    {
+        string $allLine[] = freadAllLines ($filenamePath);  //读所有行
+        string $tempArray[] = {};
+        for($line in $allLine)
+        {
+            $tempArray = stringArrayCatenate($tempArray,stringToStringArray($line,"*"));  //用"*"将字符串分割为字符串数组
+        }
+        return $tempArray;
+    }
+    else
+    {
+        warning "There is no file in the path";
+        return {};
+    }
+}
+
+global proc string getRootPath(string $filepath,int $reverse)
+{
+    string $temp[];
+    tokenize($filepath,"/",$temp);
+    
+    string $rootPath;
+    for($i=0;$i<size($temp)-1;$i++)
+    {
+        $rootPath+= $temp[$i]+"/";
+    }
+    
+    if ($reverse == 0)
+    {
+        return `startString $rootPath (size($rootPath)-1)`;
+    }
+    else
+    {
+        return toNativePath(`startString $rootPath (size($rootPath)-1)`);
+    }
+}
+
+global proc string [] getFilenameAndExt(string $filepath)
+{
+    string $temp[];
+    string $temppath = basename($filepath,"");
+    tokenize $temppath "." $temp;
+    string $allInfo[] = {basename($filepath,"")};
+    for($i=0;$i<size($temp)-1;$i++)
+    {
+        $allInfo[size($allInfo)] = $temp[$i];
+    }
+    $allInfo[size($allInfo)] = fileExtension($filepath);
+    return $allInfo;
+}
+
+global proc string splitStringBySeparator(string $splitText,string $separator,int $separatorCount)
+{
+    string $temp[];
+    tokenize $splitText $separator $temp;
+    string $newTemp;
+    for($i=0;$i<size($separatorCount);$i++)
+    {
+        $newTemp += $temp[$i]+$separator;
+    }
+    return `startString $newTemp (size($newTemp)-1)`;
+}
+
+

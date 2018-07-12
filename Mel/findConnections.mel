@@ -1,0 +1,116 @@
+/*Category	Classification String
+    2D Textures	"texture/2d"
+    3D Textures	"texture/3d"
+    Env Textures	"texture/environment"
+    Surface Materials	"shader/surface"
+    Volumetric Materials	"shader/volume"
+    Displacement Materials	"shader/displacement"
+    Lights	"light"
+    General Utilities	"utility/general"
+    Color Utilities	"utility/color
+    Particle Utilities	"utility/particle"
+    Image Planes	"imageplane"
+    Glow	"postprocess/opticalFX"
+    The classification string is also used to determine how Viewport 2.0 will interpret the node.
+
+    Category	Classification String
+    Geometry	"drawdb/geometry"
+    Transform	"drawdb/geometry/transform"
+    Sub-Scene Object	"drawdb/subscene"
+    Shader	"drawdb/shader"
+    Surface Shader	"drawdb/shader/surface"
+*/
+
+global string $gRelativeNodes[];
+//返回所有相关节点
+//循环节点会遇到问题
+global proc findRelativeConnections(int $upOrDown,string $initialObject,int $time,string $filterList[])
+{
+    global string $allUpstreamNodes[];    
+    string $tempConnectArray[];
+
+    if($upOrDown == 0) {$tempConnectArray = `listConnections -sh on -d off -c off -scn on $initialObject`;}
+    else if ($upOrDown == 1) {$tempConnectArray = `listConnections -sh on -s off -c off -scn on $initialObject`;}
+    else if ($upOrDown == 2) {$tempConnectArray = `listConnections -sh on -c off -scn on $initialObject`;}
+
+    if(size($tempConnectArray)>0 && $time!=0)
+    {
+        $time--; //递归层数，初始值<0为不设置层数，==0为不递归，>0为层数
+        for($temp in $tempConnectArray)
+        {
+            if(stringArrayFind($temp,0,$allUpstreamNodes)<0 && stringArrayFind(nodeType($temp),0,$filterList)<0) //这里可能会遇到循环链接的节点信息，必须要剔除掉已经出现过的节点
+            {
+                $allUpstreamNodes[size($allUpstreamNodes)] = $temp;
+                findRelativeConnections($upOrDown,$temp,$time,$filterList);
+            }
+            else
+            {
+                continue;
+            }
+        }
+    }
+}
+
+//返回file节点的路径信息
+global proc string getFilePath(string $fileNode)
+{
+    string $fileNodeType = `nodeType $fileNode`;
+    switch ($fileNodeType)
+    {
+        case "file":
+        {
+            return `getAttr ($fileNode + ".fileTextureName")`;
+        }
+        case "aiImage":
+        {
+            return `getAttr ($fileNode + ".filename")`;
+        }
+        case "mentalrayTexture":
+        {
+            return `getAttr ($fileNode + ".fileTextureName")`;
+        }
+        default:
+        {
+            return "";
+        }
+    }
+}
+
+//根据节点类型查找
+global proc string [] findNodeTypeInList(string $nodeType[],string $list[])
+{
+    string $temp[];
+    for ($node in $list)
+    {
+        for($type in $nodeType)
+        {
+            if (`nodeType $node` == $type)
+            {
+                $temp[size($temp)] = $node;
+            }
+        }
+    }
+    return $temp;
+}
+
+
+string $filterTypeList[] = {"drawdb/geometry","deformer","animation"};
+string $typeFilter[];
+for($filter in $filterTypeList)
+{
+    $typeFilter = stringArrayCatenate($typeFilter,listNodeTypes($filter));
+}
+
+string $list[] = `ls -sl -dag -s -ni`;
+string $newlists[] = `listConnections -t "shadingEngine" $list[0]`;
+
+findRelativeConnections(0,$newlists[0],-1,$typeFilter);
+
+string $nodeFilter[] = `listNodeTypes "texture"`;
+string $allConnections[] = $allUpstreamNodes;
+stringArrayRemoveDuplicates($allConnections);
+print (findNodeTypeInList({"file"},$allUpstreamNodes));
+
+clear $allUpstreamNodes;
+
+

@@ -1,0 +1,32 @@
+
+string $renderLayerList[] = `ls -typ "renderLayerManager"`;
+if(size($renderLayerList)!=1)
+{
+    error "There are not only one renderManager in the scene";
+}
+int $renderLayerIndices[] = `getAttr -mi ($renderLayerList[0]+".renderLayerId")`;
+
+string $countElement[];
+for($renderLayerIndex in $renderLayerIndices)
+{
+    $countElement[size($countElement)] = $renderLayerIndex;
+    int $count = 0;
+    for($index in $renderLayerIndices)    
+    {
+        if($index == $renderLayerIndex)
+        {
+            $count++;
+        }
+    }
+    $countElement[size($countElement)] = $count;
+    //print(`listConnections -c off -s off ($renderLayerList[0]+".renderLayerId["+$renderLayerIndex+"]")`);       
+}
+
+for($i=0;$i<size($countElement);$i+=2)
+{
+    print("Index is :" + $countElement[$i] + "  And Count Number is : " + $countElement[$i+1] + "\n");
+}
+
+
+
+

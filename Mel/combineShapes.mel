@@ -1,0 +1,16 @@
+global proc combineShapes()
+{
+    string $curves[] = `ls -sl -tr`;                                                     //列出transform
+    makeIdentity -apply on -t 1 -r 1 -s 1 -n 0 -pn 1 $curves;         //冻结所有的transform
+    refresh;                                                                                    //冻结变换后要刷新一下视口才管用。。。。
+
+    string $curveShapes[] = `ls -sl -dag -s`;                                   //列出shapes
+    string $combineGroup = `group -em -n "iconCurve"`;            //创建一个空组
+    select -r $curveShapes;                                                          //选择shapes
+    select -add $combineGroup;                                                  //选择新的transform
+    parent -r -s;                                                                           //把shapes全部parent到新的transform里去
+    delete $curves;                                                                      //删除原来的transform
+	select $combineGroup;
+}     
+
+combineShapes();

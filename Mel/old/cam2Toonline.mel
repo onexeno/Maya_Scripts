@@ -1,0 +1,86 @@
+
+global string $textList1,$textList2;
+
+
+global proc createMatrix(string $cam)
+{
+    if(`objExists ($cam+"Matrix")`)
+    {
+        if(!`isConnected ($cam+".worldMatrix") ($cam+"Matrix.inputMatrix")`)
+        {
+            connectAttr -f ($cam+".worldMatrix") ($cam+"Matrix.inputMatrix");
+        }
+    }
+    else
+    {
+        string $decomposeMatrix = `createNode -n ($cam+"Matrix") "decomposeMatrix"`;
+        connectAttr -f ($cam+".worldMatrix") ($decomposeMatrix+".inputMatrix");
+    }
+    
+}
+
+
+global proc selCam()
+{
+    global string $textList1,$textList2; 
+    string $list[] = `textScrollList -q -ai $textList2`;
+    string $cams[] = `textScrollList -q -si $textList1`; 
+    createMatrix($cams[0]);
+    for($i=0;$i<size($list);$i++)
+    {
+        if(!`isConnected ($cams[0]+"Matrix.outputTranslate") ($list[$i]+".cameraPoint")`)
+        {
+            connectAttr -f ($cams[0]+"Matrix.outputTranslate") ($list[$i]+".cameraPoint");
+        }
+        else
+        {
+            continue;
+        }
+    }
+}
+
+global proc selToon()
+{
+    global string $textList1,$textList2;
+    string $toons[] = `textScrollList -q -si $textList2`;
+    select -r $toons;
+}
+
+global proc cam2Toonline()
+{
+    global string $textList1,$textList2;
+	
+	if(!`pluginInfo -q -l "matrixNodes"`)
+	{
+		loadPlugin -qt "matrixNodes";
+	}
+	
+    if(`window -ex camToonlineWindow`)
+    {
+        windowPref -r camToonlineWindow;
+        deleteUI camToonlineWindow;
+    }
+    
+    window -t "SelCamConnectionToToonline" -w 200 -h 200 camToonlineWindow;
+    columnLayout;
+    rowLayout -nc 2;
+        $textList1 = `textScrollList -dcc "selCam()"`;
+        $textList2 = `textScrollList -sc "selToon()"`;
+        setParent..;
+    setParent..;
+    showWindow camToonlineWindow;
+    
+    
+    string $cams[] = `listCameras -p`;
+    for($cam in $cams)
+    {
+        textScrollList -e -a $cam $textList1;
+    }
+    
+    string $toons[] = `ls -typ "pfxToon"`;
+    for($toon in $toons)
+    {
+        textScrollList -e -a $toon $textList2;
+    }
+}
+cam2Toonline()

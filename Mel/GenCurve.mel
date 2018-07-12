@@ -1,0 +1,43 @@
+// select two points to generate a curve
+// interpolate this curve to nearest surface point 
+
+
+int $interpolateTimes;
+
+proc string createNearestPointNode()
+{
+    string $selList[] = `ls -sl -dag -s`;
+
+    if(size($selList)==1 && `nodeType($selList[0])=="mesh"`)
+    {
+        catchQuiet(`loadPlugin -qt "nearestPointOnMesh"`);
+        string $nearestPointNode = `createNode -n "NPOM" "nearestPointOnMesh"`;
+        connectAttr -f ($selList[0]+".worldMesh[0]") ($nearestPointNode+".inMesh");
+        return $nearestPointNode;
+    }
+}
+
+
+
+
+global string $pointsBySelectionSort[];
+
+proc removeDupSelectionList()
+{
+    global string $pointsBySelectionSort[];
+    string $tempSel[] = `ls -sl -fl`;
+    for($temp in $tempSel)
+    {
+        if(stringArrayFind($temp,0,$pointsBySelectionSort)==-1)
+        {
+            $pointsBySelectionSort[size($pointsBySelectionSort)] = $temp;
+        }
+    }
+    print $pointsBySelectionSort;
+}
+
+
+
+scriptJob -e "SelectionChanged" "removeDupSelectionList";
+
+string $points = `ls -sl`;

@@ -1,0 +1,53 @@
+global proc int quickSortPartition(int $array[], int $start, int $end)
+{
+    int $pivot;
+    for($i=$start+1;$i<=$end;$i++)
+    {
+        if($array[$i]<=$array[$start])
+        {
+            $pivot++;
+            $array[$i] = $array[$pivot];
+            $array[$pivot] = $array[$i];
+        }
+    }
+    $array[$pivot] = $array[$start];
+    $array[$start] = $array[$pivot];
+    return $pivot;
+}
+
+global proc int [] quickSort(int $array[], int $start, int $end)
+{
+    if($start>=$end)
+        return -1;
+    int $pivot = quickSortPartition($array,$start,$end);
+    quickSort($array,$start,$pivot-1);
+    quickSort($array,$pivot-1,$end);
+
+    return quickSort($array,$start,$end);
+}
+
+
+//----------------------Bubble Sort------------------------
+global proc int [] bubbleSort(int $array[], int $n) 
+{
+    int $i,$k;
+    int $flag;
+
+    $flag = $n;
+    while($flag>0)
+    {
+        $k = $flag;
+        $flag = 0;
+        for($j=1;$j<$k;$j++)
+        {
+            if($array[$j-1] > $array[$j])
+            {
+                int $temp = $array[$j-1];
+                $array[$j-1] = $array[$j];
+                $array[$j] = $temp;
+                $flag = $j;
+            }
+        }
+    }
+    return $array;
+}

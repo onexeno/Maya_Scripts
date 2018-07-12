@@ -1,0 +1,78 @@
+global proc connector_layeredTexture,string $layeredTexture,string $color,string $alpha,int $layerNum,string $operation)
+{
+    if(size($color)>0)
+    {connectAttr -f ($color) ($layeredTexture+".input["+$layerNum+'].color');}
+    else
+    {warning "None attribute to connecting";}
+    if(size($alpha)>0)
+    {connectAttr -f ($alpha) ($layeredTexture+".input["+$layerNum+"].alpha");}
+
+    
+
+    switch (toLower($operation)
+    {
+        case "none":
+        {
+            setAttr ($layeredTexture+".blendMode") 0;
+            break;
+        }
+        case "over":
+        {
+            setAttr ($layeredTexture+".blendMode") 1;
+            break;
+        }
+        case "lighten":
+        {
+            setAttr ($layeredTexture+".blendMode") 8;
+            break;
+        }
+        case "darken":
+        {
+            setAttr ($layeredTexture+".blendMode") 9;
+            break;
+        }
+        case "add":
+        {
+            setAttr ($layeredTexture+".blendMode") 4;
+            break;
+        }
+        case "multiply":
+        {
+            setAttr ($layeredTexture+".blendMode") 6;
+            break;
+        }
+        case "substract":
+        {
+            setAttr ($layeredTexture+".blendMode") 5;
+            break;
+        }
+        case "in":
+        {
+            setAttr ($layeredTexture+".blendMode") 2;
+            break;
+        }
+        case "out":
+        {
+            setAttr ($layeredTexture+".blendMode") 3;
+            break;
+        }
+        case "difference":
+        {
+            setAttr ($layeredTexture+".blendMode") 7;
+            break;
+        }
+        default:
+        {
+            break;
+        }
+    }
+}
+
+global proc creator_color_LayeredTexture()
+global proc creator_shadow_LayeredTexture()
+
+//createLayeredTexture($a,$b,$c,$d,$e,$f)?
+//createLayeredTexture($a[])
+//createLayeredTexture($a=0||1)?
+
+
