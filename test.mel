@@ -1,0 +1,125 @@
+/*
+createNode -n correctiveMatrixUtilities transform;
+createNode -n matrix2xform parentConstraint;
+createNode -n matrix2scale scaleConstraint;
+createNode -n invMReaderOffset transform;
+addAttr -ln theMatrix -dt "matrix" invMReaderOffset;
+createNode -n invMReader -p invMReaderOffset transform;
+createNode -n invMNewPos -p invMReader transform;
+createNode -n defOffset transform;
+createNode -n corPos -p defOffset transform;
+connectAttr -f corPos.translate invMNewPos.translate;
+connectAttr -f corPos.rotate invMNewPos.rotate;
+connectAttr -f corPos.scale invMNewPos.scale;
+//invMReaderOffset.theMatrix to matrixInverter.xform
+createNode -n matrixInverter transform;
+createNode -n matrix2xform2 parentConstraint;
+createNode -n matrix2scale2 scaleConstraint;
+connectAttr invMReaderOffset.theMatrix  matrix2xform2.target[0].targetParentMatrix;
+connectAttr matrix2xform2.constraintTranslate.constraintTranslateX matrixInverter.translate.translateX;
+connectAttr matrix2xform2.constraintTranslate.constraintTranslateY matrixInverter.translate.translateY;
+connectAttr matrix2xform2.constraintTranslate.constraintTranslateZ matrixInverter.translate.translateZ;
+connectAttr matrix2xform2.constraintRotate.constraintRotateX matrixInverter.rotate.rotateX;
+connectAttr matrix2xform2.constraintRotate.constraintRotateY matrixInverter.rotate.rotateY;
+connectAttr matrix2xform2.constraintRotate.constraintRotateZ matrixInverter.rotate.rotateZ;
+connectAttr invMReaderOffset.theMatrix matrix2scale2.target[0].targetParentMatrix;
+connectAttr matrix2scale2.constraintScale matrixInverter.scale;
+//matrixInverter.inverseMatrix to invMReader.xform
+connectAttr matrixInverter.inverseMatrix matrix2xform.target[0].targetParentMatrix;
+connectAttr matrix2xform.constraintTranslate.constraintTranslateX invMReader.translate.translateX;
+connectAttr matrix2xform.constraintTranslate.constraintTranslateY invMReader.translate.translateY;
+connectAttr matrix2xform.constraintTranslate.constraintTranslateZ invMReader.translate.translateZ;
+connectAttr matrix2xform.constraintRotate.constraintRotateX invMReader.rotate.rotateX;
+connectAttr matrix2xform.constraintRotate.constraintRotateY invMReader.rotate.rotateY;
+connectAttr matrix2xform.constraintRotate.constraintRotateZ invMReader.rotate.rotateZ;
+connectAttr matrixInverter.inverseMatrix matrix2scale.target[0].targetParentMatrix;
+connectAttr matrix2scale.constraintScale invMReader.scale;
+parent matrix2xform matrix2scale invMReaderOffset defOffset matrixInverter matrix2xform2 matrix2scale2 correctiveMatrixUtilities;
+
+
+
+string $objs[] = `ls -sl -o -ni`;
+// 0 is Corrective Shape , 1 is Original Shape;
+
+int $vtxNums[] = `polyEvaluate -v $objs[0]`;
+//get imtermediateObject;
+$tempString=`listRelatives -f -s $objs[1]`;
+string $preDeformMesh;
+for ($i=0;$i<size($tempString);$i++)
+	if (`getAttr ($tempString[$i]+".intermediateObject")`)
+		$preDeformMesh=$tempString[$i];
+
+float $x[],$y[],$z[],$new[];
+
+move -r 1 0 0 ($preDeformMesh+".vtx[0:9999999]");
+duplicate -n xOffsetts $objs[1];
+move -r -1 1 0 ($preDeformMesh +".vtx[0:9999999]");
+duplicate -n yOffsetts $objs[1];
+move -r 0 -1 1 ($preDeformMesh+".vtx[0:9999999]");
+duplicate -n zOffsetts $objs[1];
+
+parent xOffsetts yOffsetts zOffsetts correctiveMatrixUtilities;
+
+
+
+
+for($i=0;$i<$vtxNums[0];$i++){
+
+
+    float $posA[] = `xform -q -ws -t ($objs[1]+".vtx["+$i+"]")`;
+    float $posB[] = `xform -q -ws -t ($objs[0]+".vtx["+$i+"]")`;
+
+    if(abs($posA[0]-$posB[0])<0.01 && abs($posA[1]-$posB[1])<0.01 && abs($posA[2]-$posB[2])<0.01)
+        continue;
+    $x = `xform -q -ws -t ("xOffsetts.vtx["+$i+"]")`;
+    $y = `xform -q -ws -t ("yOffsetts.vtx["+$i+"]")`;
+    $z = `xform -q -ws -t ("zOffsetts.vtx["+$i+"]")`;
+
+    float $nonDefPos[] = `xform -q -ws -t ($preDeformMesh+".vtx["+$i+"]")`;
+    float $defPos[] = `xform -q -ws -t ($objs[1]+".vtx["+$i+"]")`;
+    float $corPos[] = `xform -q -ws -t ($objs[0]+".vtx["+$i+"]")`;
+
+    xform -ws -t $nonDefPos[0] $nonDefPos[1] $nonDefPos[2] invMReaderOffset;
+    xform -ws -t $defPos[0] $defPos[1] $defPos[2] defOffset;
+    xform -ws -t $corPos[0] $corPos[1] $corPos[2] corPos;
+
+    setAttr -type "matrix" invMReaderOffset.theMatrix
+    ($x[0]-$defPos[0]) ($x[1]-$defPos[1]) ($x[2]-$defPos[2]) 0
+    ($y[0]-$defPos[0]) ($y[1]-$defPos[1]) ($y[2]-$defPos[2]) 0
+    ($z[0]-$defPos[0]) ($z[1]-$defPos[1]) ($z[2]-$defPos[2]) 0
+    0 0 0 1;
+
+    $new = `xform -q -ws -t invMNewPos`;
+    xform -ws -t $new[0] $new[1] $new[2] ($objs[0]+".vtx["+$i+"]");
+}
+*/
+
+
+string $objs[] = `ls -sl -dag -s -ni`;
+
+int $nums[] = `polyEvaluate -v $objs[0]`;
+
+string $tempString[] = `listRelatives -f -s $objs[1]`;
+string $preDeformMesh;
+for($temp in $tempString)
+{
+    if(`getAttr ($temp+".intermediateObject")`)
+        $preDeformMesh = $temp;
+}
+
+for($i=0;$i<$nums[0];$i++)
+{
+    float $relPos[] = `pointPosition -w ($objs[0]+".vtx["+$i+"]")`;
+    float $oriPos[] = `pointPosition -w ($objs[1]+".vtx["+$i+"]")`;
+    float $minusPos[] = {
+                         $relPos[0]-$oriPos[0],
+                         $relPos[1]-$oriPos[1],
+                         $relPos[2]-$oriPos[2]
+                         };
+    
+    duplicate -rr $preDeformMesh;
+
+    
+    
+    
+}

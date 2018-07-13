@@ -1,0 +1,282 @@
+if(`window -ex TEST`)
+    deleteUI TEST;
+
+string $textlist;    
+window -t "test window" -w 500 -h 500 TEST;
+frameLayout -w 500 -h 300 -l "Last";
+columnLayout;
+rowLayout -nc 5;
+button -w 75 -l "Init" -c "refreshButton($textlist)";
+textField -w 200 TEXT_FIELD_A;
+button -w 30 -l "Sort" -c "sortList($textlist)";
+button -w 75 -l "Filter" -c "refreshListWithFilter($textlist)";
+button -w 75 -l "Redo" -c "refreshListWithNoFilter($textlist)";
+setParent..;
+$textlist = `textScrollList -w 500 -h 900 -ams on SCROLL_FIELD`;
+string $popMenu = `popupMenu -p $textlist`;
+menuItem -l "Choose Selected" -c "selectListItemAction($textlist)" -p $popMenu;
+menuItem -d on -p $popMenu;
+menuItem -l "Group Selected" -c "groupSelectObject($textlist)" -p $popMenu;
+showWindow TEST;
+
+
+
+global string $listContent[]; //Initialize the selection list
+global proc refreshButton(string $list)
+{
+    global string $listContent[];
+    $listContent = `ls -sl -ap`;
+    refreshList($list,$listContent);
+}
+
+global proc sortList(string $list)
+{
+    string $temp[] = `textScrollList -q -ai $list`;
+    refreshList($list,sort($temp));
+}
+
+global proc refreshListWithNoFilter(string $list)
+{
+    global string $listContent[];
+    if(size($listContent)>0)
+    {
+        textScrollList -e -ra $list;
+        for($content in $listContent)
+        {
+            textScrollList -e -a $content $list;
+        }
+    }
+    else
+    {
+        warning("List is not initialized");
+    }
+}
+
+global proc refreshListWithFilter(string $list)
+{
+    global string $listContent[];
+
+    string $temps[] = `textScrollList -q -ai $list`;
+    string $removeEnd[];
+    for($temp in $temps)
+    {
+        $removeEnd[size($removeEnd)] = removeStringEndNum($temp);
+    }
+    $removeEnd = stringArrayRemoveDuplicates($removeEnd);
+    refreshList($list,$removeEnd);
+}
+
+
+global proc refreshList(string $list,string $array[])
+{
+    textScrollList -e -ra $list;
+    for($item in $array)
+    {
+        textScrollList -e -a $item $list;
+    }
+}
+
+
+global proc string removeStringEndNum(string $input)
+{
+    int $stringLength = size($input);
+    string $intNum = match("[0-9]+$",$input);
+    int $numLength = size($intNum);
+    return substring($input,1,$stringLength-$numLength);
+}
+
+
+global proc string [] selectListItemAction(string $list)
+{
+    global string $listContent[];
+    string $temp[] = `textScrollList -q -ai $list`;
+    string $lookupOldList[];
+    if(size($listContent)>0)
+    {
+        if(size($temp)==size($listContent))
+        {
+            select("-r",`textScrollList -q -si $list`);
+            $lookupOldList = `textScrollList -q -si $list`;
+        }
+        else
+        {
+            string $selItem[] = `textScrollList -q -si $list`;
+            select -cl;
+            for($item in $selItem)
+            {
+                for($preItem in $listContent)
+                {
+                    string $matched = match($item+"[0-9]+$",$preItem);
+                    if(size($matched)>=1 && objExists($preItem))
+                    {
+                        $lookupOldList[size($lookupOldList)] = $preItem;
+                    }
+                    else
+                    {
+                        continue;
+                    }$
+                }
+                if(objExists($item) && stringArrayFind($item,0,$listContent)>=0)
+                {
+                    $lookupOldList[size($lookupOldList)] = $item;
+                }
+                else
+                {
+                    continue;
+                }
+            }
+            print $lookupOldList;
+            select -r $lookupOldList;
+        }
+    }
+    else
+    {
+        warning("List is not initialized");
+    }
+    
+    return $lookupOldList;
+    clear $lookupOldList;
+}
+
+global proc groupSelectObject(string $list)
+{
+    string $parentsList[];
+    string $temp[] = selectListItemAction($list);
+    select -cl;
+    for($item in $temp)
+    {
+        string $parent[] = `listRelatives -p $item`;
+        if(size($parent[0])>=1)
+        {
+            $parentsList[size($parentsList)] = $parent[0];
+        }
+    }
+    
+    $parentsList = stringArrayRemoveDuplicates($parentsList);
+    
+    string $inGroup[];
+    string $notInGroup[];
+    for($group in $parentsList)
+    {
+        string $sameGroup[];
+        for($item in $temp)
+        {
+            string $parent[] = `listRelatives -p $item`;
+            if($parent[0] == $group)
+            {
+                $sameGroup[size($sameGroup)] = $item;
+                $inGroup[size($inGroup)] = $item;
+            }
+        }
+        //print ($sameGroup);
+        ///print ("-------------------\n");
+        if(size($sameGroup)>=1)
+        {
+            group $sameGroup;
+        }
+    }
+    if(size($inGroup)>=1)
+    {
+        $notInGroup = stringArrayRemove($inGroup,$temp);
+        group $notInGroup;
+    }
+    else
+    {
+        group $temp;
+    }
+}
+
+
+
+
+//----------------------Color -----------------------------
+global proc vector randomColorSelector(int $tone)
+{
+    float $first = 0.0;
+    float $second = 0.0;
+    float $third = 0.0;
+    if($tone == 0)
+    {
+        $first = rand(0.95,1);
+        $second = rand(0.5,1);
+        $third = rand(0.0,0.25);
+    }
+    else
+    {
+        $first = rand(0.25,0.5);
+        $second = rand(0.125,0.25);
+        $third = rand(0.0,0.0625);
+    }
+    
+    int $index = rand(0,6);
+    switch($index)
+    {
+        case 0:
+            return <<$first,$second,$third>>;
+        case 1:
+            return <<$first,$third,$second>>;
+        case 2:
+            return <<$second,$first,$third>>;
+        case 3:
+            return <<$second,$third,$first>>;
+        case 4:
+            return <<$third,$first,$second>>;
+        default:
+            return <<$third,$second,$first>>;
+    }
+}
+
+
+global proc setObjectColor(string $objlist[],int $type,int $tone)
+{
+    
+    for($item in $objlist)
+    {
+     
+        vector $color = randomColorSelector($tone);
+        if($tone>=3)
+        {
+            $color = randomColorSelector(int(rand(0,2)));
+        }
+        print $color;
+        print ("\n––––––––––––––––––––––––––––––\n");
+        if($type == 0)
+        {
+            if(`attributeQuery -n $item -ex "useOutlinerColor"`)
+            {
+                setAttr ($item+".useOutlinerColor") 1;
+                setAttr ($item+".outlinerColor") ($color.x) ($color.y) ($color.z);
+            }
+        }
+        else if ($type == 1)
+        {
+            if(`attributeQuery -n $item -ex "overrideEnabled"`)
+            {
+                
+                setAttr ($item+".overrideEnabled") 1;
+                setAttr ($item+".overrideRGBColors") 1;
+                setAttr ($item+".overrideColorRGB") ($color.x) ($color.y) ($color.z);
+            }
+        }
+        else
+        {
+            if(`attributeQuery -n $item -ex "useOutlinerColor"`)
+            {    
+                setAttr ($item+".useOutlinerColor") 1;
+                setAttr ($item+".outlinerColor") ($color.x) ($color.y) ($color.z);
+            }
+            
+            if(`attributeQuery -n $item -ex "overrideEnabled"`)
+            {
+                setAttr ($item+".overrideEnabled") 1;
+                setAttr ($item+".overrideRGBColors") 1;
+                setAttr ($item+".overrideColorRGB") ($color.x) ($color.y) ($color.z);
+            }
+        }
+
+    }
+    
+}
+setObjectColor(`ls -sl`,2,0);
+
+//match("aiStandIn"+"[0-9]+$","aiStandIn9");

@@ -1,0 +1,70 @@
+
+
+//This Scripts require BE_VDB Plugin...
+
+
+
+string $selList[] = `ls -sl -dag -s`;
+
+//create vdb nodes
+
+
+proc float getBoundingBox(string $obj)
+{
+    vector $bbmin = `getAttr ($obj+".boundingBoxMin")`;
+    vector $bbmax = `getAttr ($obj+".boundingBoxMax")`;
+    return ($bbmax.x-$bbmin.x)*($bbmax.y-$bbmin.y)*($bbmax.z-$bbmin.z);
+}
+
+
+proc string particle2Vdb(string $particle)
+{
+
+    string $vdbFromParticle = `createNode -ss BE_VDBFromParticles -n ($particle+"_Vdb_FromParticle")`;
+    setAttr ($vdbFromParticle+".VoxelSize") 0.1;
+    connectAttr ($particle+".position") ($vdbFromParticle+".PointInput");
+    if(`attributeQuery -node $particle -ex "radiusPP"`)
+    {
+        connectAttr ($particle+".radiusPP") ($vdbFromParticle+".PointRadiusInput");     
+    }
+
+    return $vdbFromParticle;
+}
+
+proc string polygon2Vdb(string $polygon)
+{
+    string $vdbFromPolygon = `createNode -ss BE_VDBFromPolygons -n ($polygon+"_Vdb_FromPolygon")`;
+    setAttr ($vdbFromPolygon+".VoxelSize") 0.1;
+    connectAttr ($polygon+".outMesh") ($vdbFromPolygon+".MeshInput");
+    setAttr ($polygon+".intermediateObject") 1;
+    return $vdbFromPolygon;
+}
+
+proc string obj2Vdb(string $obj)
+{
+    string $vdbFrom;
+    string $vdbFilterSDF = `createNode -ss BE_VDBFilterSDF -n ($obj+"_Vdb_FilterSDF")`;
+    string $vdbConvert2Mesh = `createNode -ss BE_VDBConvertVDB -n ($obj+"_Vdb_ConvertSDF")`;
+    string $vdbMesh = `createNode -ss mesh -n ($obj+"_Vdb_PolyShape")`;
+
+    //setAttr $vdbFilterSDF;
+    if(`nodeType $obj` == "particle")
+        $vdbFrom = particle2Vdb($obj);
+    else if (`nodeType $obj` == "mesh")
+        $vdbFrom = polygon2Vdb($obj);
+    else
+        return “”;
+
+    setAttr ($vdbConvert2Mesh+".ConvertTo") 1;
+    setAttr ($vdbConvert2Mesh+".InvertNormal") 1;
+
+    connectAttr ($vdbFrom+".VdbOutput") ($vdbFilterSDF+".VdbInput");
+    connectAttr ($vdbFilterSDF+".VdbOutput") ($vdbConvert2Mesh+".vdbInput");
+    connectAttr ($vdbConvert2Mesh+".meshOutput[0]") ($vdbMesh+".inMesh");
+    
+    select -r $vdbMesh;
+    hyperShade -a "lambert1";
+    select -cl;
+
+    return $vdbMesh;
+}

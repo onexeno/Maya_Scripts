@@ -1,0 +1,53 @@
+string $allAiProxys[] = `ls -typ "aiStandIn"`;
+string $allAiProxysTransform[] = `listRelatives -p $allAiProxys`;
+string $selAiProxys[] = `ls -sl -typ "aiStandIn"`;
+
+
+if(`window -ex ASS2Object_Manager`)
+    deleteUI ASS2Object_Manager;
+    
+window -t "ASS2Object_Manager" -w 500 -h 600 ASS2Object_Manager;
+frameLayout -l "Proxy List" MAIN_LAYOUT;
+scrollLayout -w 500 -h 300 SCROLL_LAYOUY;
+textScrollList -ams off -w 800 -h 1080 SCROLL_LIST;
+popupMenu -p SCROLL_LIST SCROLL_LIST_MENU;
+menuItem -l "Select Parent" -c "selectProxyParent(0)" -p SCROLL_LIST_MENU;
+menuItem -l "ConvertThis" -c "selectProxyParent(1)" -p SCROLL_LIST_MENU;
+menuItem -l "ConvertALL" -c "selectProxyParentALL()" -p SCROLL_LIST_MENU;
+showWindow ASS2Object_Manager;
+
+
+textScrollList -e -ra SCROLL_LIST;
+for($proxy in $allAiProxysTransform)
+{
+    textScrollList -e -a $proxy SCROLL_LIST;
+}
+
+
+global proc selectProxyParent(int $convert)
+{
+    string $listSelection[] = `textScrollList -q -si SCROLL_LIST`;
+    string $temp[];
+    select -cl;
+    if(size($listSelection) == 1)
+    {
+        $temp = listRelatives("-ap",$listSelection[0]);
+        select("-r",$temp);
+        if($convert == 1)
+        {
+            convertInstanceToObject;
+            select("-r",$temp);
+            group -n ($listSelection[0]+"_Converter");
+        }      
+    }
+}
+
+global proc selectProxyParentALL()
+{
+    string $listALLItem[] = `textScrollList -q -ai SCROLL_LIST`;
+    for($item in $listALLItem)
+    {
+        textScrollList -e -si $item SCROLL_LIST;
+        selectProxyParent(1);
+    }
+}

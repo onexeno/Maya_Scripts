@@ -1,0 +1,509 @@
+
+// U can only use nurbsCurve node to create Node;
+
+
+
+global proc string createParticleToCurve()
+{
+    string $selCurve[] = `ls -sl -dag -s`;
+
+    if(size($selCurve)!=1 || `nodeType $selCurve[0]`!="nurbsCurve")
+    {
+        warning "Please select a nurbsCurve !!! ";
+        return "";
+    }
+    else
+    {
+        //string $emitter = `emitter -type curve -r 10000 -sro 0 -nuv 0 -cye none -cyi 1 -spd 0 -srn 0 -nsp 1 -tsp 0 -mxd 0 -mnd 0 -dx 1 -dy 0 -dz 0 -sp 0`;
+        string $emitter = `createNode -n ($selCurve[0]+"_Emitter") "pointEmitter"`;
+        //vector $selCurve[0]Pos = `getAttr ($selCurve[0]+".center")`;
+        //xform -ws -t ($selCurve[0]Pos.x) ($selCurve[0]Pos.y) ($selCurve[0]Pos.z) $emitter;
+        setAttr ($emitter+".emitterType") 3;
+        setAttr ($emitter+".scaleRateByObjectSize") 0;
+        setAttr ($emitter+".scaleRateBySpeed") 0;
+        setAttr ($emitter+".minDistance") 0;
+        setAttr ($emitter+".maxDistance") 0;
+        setAttr ($emitter+".speed") 0;
+        setAttr ($emitter+".speedRandom") 0;
+
+        string $geoConnector = `createNode -n ($selCurve[0]+"_geoConnector") "geoConnector"`;
+        string $particleNode = `createNode -n ($selCurve[0]+"_Particle") "particle"`;
+        
+        catchQuiet(`hyperShade -a "lambert1" $particleNode`);
+
+        setAttr ($particleNode + ".maxCount") 600;
+        setAttr ($emitter + ".rate") 999999;
+        setAttr ($particleNode+".startFrame") `playbackOptions -q -min`;
+        
+        connectAttr -f ("time1.outTime") ($emitter+".currentTime");
+        connectAttr -f ("time1.outTime") ($particleNode+".currentTime");
+        connectAttr -f ("time1.outTime") ($geoConnector+".currentTime");
+
+        connectAttr -f ($emitter+".output[0]")  ($particleNode+".newParticles[0]");
+
+        connectAttr -f ($selCurve[0]+".message") ($geoConnector+".owner");
+        connectAttr -f ($selCurve[0]+".local") ($geoConnector+".localGeometry");
+        connectAttr -f ($selCurve[0]+".worldMatrix") ($geoConnector+".worldMatrix");
+
+        connectAttr -f ($geoConnector+".ownerCentroid") ($emitter+".ownerCentroid");
+        connectAttr -f ($geoConnector+".ownerCentroidLocal") ($emitter+".translate");
+        connectAttr -f ($geoConnector+".ownerPositions") ($emitter+".ownerPosData");
+        connectAttr -f ($geoConnector+".ownerVelocities") ($emitter+".ownerVelData");
+        connectAttr -f ($geoConnector+".sweptGeometry") ($emitter+".sweptGeometry");
+        
+        connectAttr -f ($particleNode+".inheritFactor") ($emitter+".inheritFactor[0]");
+        connectAttr -f ($particleNode+".isFull") ($emitter+".isFull[0]");
+        connectAttr -f ($particleNode+".seed[0]") ($emitter+".seed[0]");
+        connectAttr -f ($particleNode+".startTime") ($emitter+".startTime[0]");
+        connectAttr -f ($particleNode+".timeStepSize") ($emitter+".deltaTime[0]");
+
+        connectAttr -f ($selCurve[0]+".worldSpace[0]") ($particleNode+".goalGeometry[0]");
+
+        setAttr ($particleNode+".goalWeight[0]") 1;
+
+        catchQuiet(`parent $emitter $selCurve[0]`);
+
+        //addAttr to particle;
+        addAttr -ln goalU -dt doubleArray $particleNode;
+        addAttr -ln goalU00 -dt doubleArray $particleNode;
+        
+        addAttr -ln scale_Ramp1 -dt doubleArray $particleNode;
+        addAttr -ln scale_Ramp100 -dt doubleArray $particleNode;
+        
+        addAttr -ln scale_Ramp2 -dt doubleArray $particleNode;
+        addAttr -ln scale_Ramp200 -dt doubleArray $particleNode;
+        
+        addAttr -ln scale_Ramp3 -dt doubleArray $particleNode;
+        addAttr -ln scale_Ramp300 -dt doubleArray $particleNode;
+        
+        addAttr -ln goal_Run_Ramp1 -dt doubleArray $particleNode;
+        addAttr -ln goal_Run_Ramp100 -dt doubleArray $particleNode;
+        
+        addAttr -ln noiseId -dt doubleArray $particleNode;
+        addAttr -ln noiseId00 -dt doubleArray $particleNode;
+        
+        addAttr -ln radiusPP -dt doubleArray $particleNode;
+        addAttr -ln radiusPP00 -dt doubleArray $particleNode;
+    
+        addAttr -ln radius -at double -dv 0.1 $particleNode;
+        setAttr -e -keyable true ($particleNode+".radius");
+
+        addAttr -ln motionTrigger -at bool -dv 0 $particleNode;
+        setAttr -e -keyable true ($particleNode+".motionTrigger");
+
+        addAttr -ln motionSpeed_PP -dt doubleArray  $particleNode;
+        addAttr -ln motionSpeed_PP00 -dt doubleArray $particleNode; 
+
+        addAttr -ln motionSpeed_Min -at double -dv 0.01 $particleNode;
+        setAttr -e -keyable true ($particleNode+".motionSpeed_Min");
+
+        addAttr -ln motionSpeed_Max -at double -dv 0.01 $particleNode;
+        setAttr -e -keyable true ($particleNode+".motionSpeed_Max");
+
+        addAttr -ln motionCustom -at bool -dv 0 $particleNode;
+        setAttr -e -keyable true ($particleNode+".motionCustom");
+
+        addAttr -ln motionKey -at double -dv 0 $particleNode;
+        setAttr -e -keyable true ($particleNode+".motionKey");
+        
+        addAttr -ln motionCustom_TempU -dt doubleArray $particleNode;
+        addAttr -ln motionCustom_TempU00 -dt doubleArray $particleNode;
+
+        //goalOffset with uniform direction
+        addAttr -ln "goal_Offset_Direction" -at double3 $particleNode;
+        addAttr -ln "goal_Offset_DirectionX" -at double -p goal_Offset_Direction $particleNode;    
+        addAttr -ln "goal_Offset_DirectionY" -at double -p goal_Offset_Direction $particleNode;
+        addAttr -ln "goal_Offset_DirectionZ" -at double -p goal_Offset_Direction $particleNode;
+        setAttr -type double3 ($particleNode+".goal_Offset_Direction") 0 0 0;
+        setAttr -e -keyable true ($particleNode+".goal_Offset_Direction");
+        setAttr -e -keyable true ($particleNode+".goal_Offset_DirectionX");
+        setAttr -e -keyable true ($particleNode+".goal_Offset_DirectionY");
+        setAttr -e -keyable true ($particleNode+".goal_Offset_DirectionZ");
+
+        addAttr -ln goal_Offset_Ramp -dt doubleArray $particleNode;
+        addAttr -ln goal_Offset_Ramp00 -dt doubleArray $particleNode;
+        //goalOffset with Constant
+        addAttr -ln "goal_Offset_Constant" -at double3 $particleNode;
+        addAttr -ln "goal_Offset_ConstantX" -at double -p goal_Offset_Constant $particleNode;
+        addAttr -ln "goal_Offset_ConstantY" -at double -p goal_Offset_Constant $particleNode;
+        addAttr -ln "goal_Offset_ConstantZ" -at double -p goal_Offset_Constant $particleNode;
+        setAttr -type double3 ($particleNode+".goal_Offset_Constant") 0 0 0;
+        setAttr -e -keyable true ($particleNode+".goal_Offset_Constant");
+        setAttr -e -keyable true ($particleNode+".goal_Offset_ConstantX");
+        setAttr -e -keyable true ($particleNode+".goal_Offset_ConstantY");
+        setAttr -e -keyable true ($particleNode+".goal_Offset_ConstantZ");
+
+        addAttr -ln goal_Offset_Multiply -at double -dv 1 $particleNode;
+        setAttr -e -keyable true ($particleNode+".goal_Offset_Multiply");
+        //goalOffset with random direction
+        addAttr -ln goal_Offset_Random -dt vectorArray $particleNode;
+        addAttr -ln goal_Offset_Random00 -dt vectorArray $particleNode;
+
+
+        addAttr -ln goalOffset -dt vectorArray $particleNode;
+        addAttr -ln goalOffset00 -dt vectorArray $particleNode;
+        
+        addAttr -ln "goal_Max" -at double -dv 1 -min 0 -max 1 $particleNode;
+        setAttr -e -keyable true ($particleNode+".goal_Max");
+        addAttr -ln "goal_Min" -at double -dv 0 -min 0 -max 1 $particleNode;
+        setAttr -e -keyable true ($particleNode+".goal_Min");
+        
+        
+        setAttr ($particleNode+".particleRenderType") 7;
+        
+        string $ramp1[] = `particleRamp "goalU" "scale_Ramp1" $particleNode 1 4`;
+        string $ramp2[] = `particleRamp "goalU" "scale_Ramp2" $particleNode 1 4`;
+        string $ramp3[] = `particleRamp "noiseId" "scale_Ramp3" $particleNode 1 4`;
+        string $ramp4[] = `particleRamp "goalU" "goal_Run_Ramp1" $particleNode 1 4`; 
+        string $ramp5[] = `particleRamp "goalU" "goal_Offset_Ramp" $particleNode 1 4`;
+        
+        setAttr ($ramp5[1]+".minValue") -1;
+
+        //return {$selCurve[0],$particleNode,$emitter};
+        string $creationExprString,$rbdExprString;
+
+        $creationExprString =  "noiseId = rand(0,1);\n\n" +
+                        "motionCustom_TempU = rand(goal_Min,goal_Max);\n\n" +
+                        "motionSpeed_PP = rand(motionSpeed_Min,motionSpeed_Max);\n\n" +
+                        "radiusPP = scale_Ramp1 * scale_Ramp2 * scale_Ramp3 * radius;\n\n" +
+                        "if (motionCustom == 1)\n{\n\t" +
+                        "goalU = rand(goal_Min,goal_Max) * motionKey;\n}\n" +
+                        "else if (motionTrigger == 1)\n{\n\t" +
+                        "goalU = 0;\n}\n" +
+                        "else{\n\t" +
+                        "goalU = rand(goal_Min,goal_Max);\n}\n\n" + 
+                        "goalOffset = radiusPP * <<goal_Offset_DirectionX,goal_Offset_DirectionY,goal_Offset_DirectionZ>> * goal_Offset_Ramp + <<goal_Offset_ConstantX,goal_Offset_ConstantY,goal_Offset_ConstantZ>>*goal_Offset_Multiply;\n";
+
+        $rbdExprString = "radiusPP = scale_Ramp1 * scale_Ramp2 * scale_Ramp3 * radius;\n\n"+
+                        "if(motionCustom == 1)\n{\n\t" +
+                        "goalU = motionCustom_TempU * motionKey;\n}\n" +
+                        "else if (motionTrigger == 1)\n{\n\t" +
+                        "goalU += motionSpeed_PP * goal_Run_Ramp1 * motionCustom_TempU;\n}\n\n" +
+                        "goalOffset = radiusPP * <<goal_Offset_DirectionX,goal_Offset_DirectionY,goal_Offset_DirectionZ>> * goal_Offset_Ramp + <<goal_Offset_ConstantX,goal_Offset_ConstantY,goal_Offset_ConstantZ>>*goal_Offset_Multiply;\n";
+
+
+        dynExpression -s $creationExprString
+                        -c $particleNode;
+        
+        dynExpression -s $rbdExprString
+                        -rbd $particleNode;
+
+        return $particleNode;
+    }
+}
+
+
+//不要把这个写成flow Curve工具了……
+
+// Create Ramp & Connect it to Particle;
+global proc string [] particleRamp(string $inputAttr,string $outputAttr,string $particle,int $initialize,int $interpolationType)
+{
+    string $ramp1 = `createNode -n ($particle+"_"+$outputAttr+"_Ramp") "ramp"`;
+    string $arrayMapper1 = `createNode -n ($particle+"_"+$outputAttr+"_ArrayMapper") "arrayMapper"`;
+    
+    
+    setAttr ($arrayMapper1+".minValue") 0;
+    setAttr ($arrayMapper1+".maxValue") 1;
+    
+    if($initialize == 1)
+    {
+        // set ramp interpolation to smooth;
+        setAttr ($ramp1+".interpolation") $interpolationType;
+        
+        //initialize noiseId_Ramp and goalSpeedRamp to max;
+        setAttr ($ramp1+".colorEntryList[0].color") -type double3 1 1 1;
+        setAttr ($ramp1+".colorEntryList[1].color") -type double3 1 1 1;
+        setAttr ($ramp1+".colorEntryList[0].position") 0.0;
+        setAttr ($ramp1+".colorEntryList[1].position") 1.0;
+
+    }
+    
+    connectAttr -f ($ramp1+".outColor") ($arrayMapper1+".computeNodeColor");
+    connectAttr -f ($ramp1+".message") ($arrayMapper1+".computeNode");
+    connectAttr -f ($particle+"."+$inputAttr) ($arrayMapper1+".vCoordPP");
+    connectAttr -f ($arrayMapper1+".outValuePP") ($particle+"."+$outputAttr);
+
+    return {$ramp1,$arrayMapper1};
+}
+
+
+
+
+// Create VDB from particle module;
+
+global proc string createVDB(string $objs[])
+{
+    if(!`pluginInfo -q -l "BE_OpenVDB"`)
+        if(catchQuiet(`loadPlugin -qt "BE_OpenVDB"`))
+        {
+            warning "You have to install the VDB Plugin";
+            return "";
+        }
+    if(size($objs)>1)
+    {
+        return multiParticle($objs);
+    }
+    else 
+    {
+        return obj2Vdb($objs[0]);
+    }
+}       
+
+proc string multiParticle(string $particles[])
+{
+    if(!`pluginInfo -q -l "SOuP"`)
+        if(catchQuiet(`loadPlugin -qt "SOuP"`))
+        {
+            warning "You have to install the SOuP Plugin";
+            return "";
+        }
+    string $temp[];
+    for($particle in $particles)
+    {
+        if(`nodeType $particle` == "particle")
+        {
+            $temp[size($temp)] = $particle;
+        }
+    }
+    if(size($particle)>0)
+    {
+        return multiParticles2VDB($temp);
+    }
+    else
+    {
+        return "";
+    }
+}
+
+
+proc string multiParticles2VDB(string $objs[])
+{
+    string $arrayCom1 = `createNode -n ("Position_CombineArrays") "combineArrays"`;
+    string $arrayCom2 = `createNode -n ("Radius_CombineArrays") "combineArrays"`;
+    for($i=0;$i<size($objs);$i++)
+    {
+        connectAttr -f ($objs[$i]+".position") ($arrayCom1+".inArrays["+$i+"]");
+        connectAttr -f ($objs[$i]+".radiusPP") ($arrayCom2+".inArrays["+$i+"]");
+    }
+
+
+    string $vdbFrom = `createNode -ss BE_VDBFromParticles -n "MultiArray_Particles_VDB"`;
+    string $vdbFilterSDF = `createNode -ss BE_VDBFilterSDF -n "MultiArray_Vdb_FilterSDF"`;
+    string $vdbConvert2Mesh = `createNode -ss BE_VDBConvertVDB -n "MultiArray_Vdb_ConvertSDF"`;
+    string $vdbMesh = `createNode -ss mesh -n "MultiArray_Vdb_PolyShape"`;
+    
+    connectAttr -f ($arrayCom1+".outArray") ($vdbFrom+".PointInput");
+    connectAttr -f ($arrayCom2+".outArray") ($vdbFrom+".PointRadiusInput");
+
+    setAttr ($vdbConvert2Mesh+".ConvertTo") 1;
+    setAttr ($vdbConvert2Mesh+".InvertNormal") 1;
+
+    connectAttr ($vdbFrom+".VdbOutput") ($vdbFilterSDF+".VdbInput");
+    connectAttr ($vdbFilterSDF+".VdbOutput") ($vdbConvert2Mesh+".vdbInput");
+    connectAttr ($vdbConvert2Mesh+".meshOutput[0]") ($vdbMesh+".inMesh");
+    
+    select -r $vdbMesh;
+    hyperShade -a "lambert1";
+    select -cl;
+
+    return $vdbMesh;
+    
+}
+
+
+proc string particle2Vdb(string $particle)
+{
+
+    string $vdbFromParticle = `createNode -ss BE_VDBFromParticles -n ($particle+"_Vdb_FromParticle")`;
+    setAttr ($vdbFromParticle+".VoxelSize") 0.1;
+    connectAttr ($particle+".position") ($vdbFromParticle+".PointInput");
+    if(`attributeQuery -node $particle -ex "radiusPP"`)
+    {
+        connectAttr ($particle+".radiusPP") ($vdbFromParticle+".PointRadiusInput");     
+    }
+
+    return $vdbFromParticle;
+}
+
+proc string polygon2Vdb(string $polygon)
+{
+    string $vdbFromPolygon = `createNode -ss BE_VDBFromPolygons -n ($polygon+"_Vdb_FromPolygon")`;
+    setAttr ($vdbFromPolygon+".VoxelSize") 0.1;
+    connectAttr ($polygon+".outMesh") ($vdbFromPolygon+".MeshInput");
+    setAttr ($polygon+".intermediateObject") 1;
+    return $vdbFromPolygon;
+}
+
+proc string obj2Vdb(string $obj)
+{
+    string $vdbFrom;
+    string $vdbFilterSDF;
+    string $vdbConvert2Mesh;
+    string $vdbMesh;
+
+    //setAttr $vdbFilterSDF;
+    if(`nodeType $obj` == "particle")
+    {
+        $vdbFrom = particle2Vdb($obj);
+        $vdbFilterSDF = `createNode -ss BE_VDBFilterSDF -n ($obj+"_Vdb_FilterSDF")`;
+        $vdbConvert2Mesh = `createNode -ss BE_VDBConvertVDB -n ($obj+"_Vdb_ConvertSDF")`;
+        $vdbMesh = `createNode -ss mesh -n ($obj+"_Vdb_PolyShape")`;
+    }
+    else if (`nodeType $obj` == "mesh")
+    {
+        $vdbFrom = polygon2Vdb($obj);
+        $vdbFilterSDF = `createNode -ss BE_VDBFilterSDF -n ($obj+"_Vdb_FilterSDF")`;
+        $vdbConvert2Mesh = `createNode -ss BE_VDBConvertVDB -n ($obj+"_Vdb_ConvertSDF")`;
+        $vdbMesh = `createNode -ss mesh -n ($obj+"_Vdb_PolyShape")`;
+    }
+    else
+        return "";
+
+    setAttr ($vdbConvert2Mesh+".ConvertTo") 1;
+    setAttr ($vdbConvert2Mesh+".InvertNormal") 1;
+
+    connectAttr ($vdbFrom+".VdbOutput") ($vdbFilterSDF+".VdbInput");
+    connectAttr ($vdbFilterSDF+".VdbOutput") ($vdbConvert2Mesh+".vdbInput");
+    connectAttr ($vdbConvert2Mesh+".meshOutput[0]") ($vdbMesh+".inMesh");
+    
+    select -r $vdbMesh;
+    hyperShade -a "lambert1";
+    select -cl;
+
+    return $vdbMesh;
+}
+
+
+
+proc string createMaterial(string $objectName)
+{
+    string $surfaceShader = `shadingNode -as -n ($objectName+"_SurfaceShader") "surfaceShader"`;
+    string $samplerInfo = `shadingNode -au -n ($objectName+"_SamplerInfo") "samplerInfo"`;
+    
+    string $baseRamp = `shadingNode -at -n ($objectName+"_Base_Ramp") "ramp"`;
+
+    string $rLightRamp = `shadingNode -at -n ($objectName+"_rLight_Ramp") "ramp"`;
+    string $gLightRamp = `shadingNode -at -n ($objectName+"_gLight_Ramp") "ramp"`;
+    string $bLightRamp = `shadingNode -at -n ($objectName+"_bLight_Ramp") "ramp"`;
+
+    string $plusNode = `shadingNode -au -n ($objectName+"_PlusMinusAverage") "plusMinusAverage"`;
+
+    string $lambertSampler = `shadingNode -as -n "lambertSampler" "lambert"`;
+
+    setAttr ($lambertSampler+".color") -type double3 1 1 1;
+    setAttr ($lambertSampler+".diffuse") 1;
+
+    setAttr ($baseRamp+".interpolation") 0;
+    setAttr ($baseRamp+".colorEntryList[0].color") -type double3 1 1 1;
+    setAttr ($baseRamp+".colorEntryList[0].position") 0.1;
+    setAttr ($baseRamp+".colorEntryList[1].color") -type double3 0 0 0;
+    setAttr ($baseRamp+".colorEntryList[1].position") 1;
+    setAttr ($rLightRamp+".interpolation") 0;
+    setAttr ($rLightRamp+".colorEntryList[0].color") -type double3 0 0 0;
+    setAttr ($rLightRamp+".colorEntryList[0].position") 0;
+    setAttr ($rLightRamp+".colorEntryList[1].color") -type double3 1 0 0;
+    setAttr ($rLightRamp+".colorEntryList[1].position") 0.98;
+    
+    setAttr ($gLightRamp+".interpolation") 0;
+    setAttr ($gLightRamp+".colorEntryList[0].color") -type double3 0 0 0;
+    setAttr ($gLightRamp+".colorEntryList[0].position") 0;
+    setAttr ($gLightRamp+".colorEntryList[1].color") -type double3 0 1 0;
+    setAttr ($gLightRamp+".colorEntryList[1].position") 0.98;
+    
+    setAttr ($bLightRamp+".interpolation") 0;
+    setAttr ($bLightRamp+".colorEntryList[0].color") -type double3 0 0 0;
+    setAttr ($bLightRamp+".colorEntryList[0].position") 0;
+    setAttr ($bLightRamp+".colorEntryList[1].color") -type double3 0 0 1;
+    setAttr ($bLightRamp+".colorEntryList[1].position") 0.98;
+    
+
+
+    connectAttr -f ($samplerInfo+".facingRatio") ($baseRamp+".vCoord");
+
+    connectAttr -f ($lambertSampler+".outColorR") ($rLightRamp+".vCoord");
+    connectAttr -f ($lambertSampler+".outColorG") ($gLightRamp+".vCoord");
+    connectAttr -f ($lambertSampler+".outColorB") ($bLightRamp+".vCoord");
+
+    connectAttr -f ($baseRamp+".outColor") ($surfaceShader+".outColor");
+    connectAttr -f ($baseRamp+".outColor") ($plusNode+".input3D[0]");
+    connectAttr -f ($rLightRamp+".outColor") ($plusNode+".input3D[1]");
+    connectAttr -f ($gLightRamp+".outColor") ($plusNode+".input3D[2]");
+    connectAttr -f ($bLightRamp+".outColor") ($plusNode+".input3D[3]");
+
+    connectAttr -f ($plusNode+".output3D") ($surfaceShader+".outColor");
+
+    
+    
+    return $surfaceShader;
+
+}
+
+
+
+proc string [] createRGBLight()
+{
+
+    string $r_dir = `directionalLight -n "R_Directional"`;
+    string $g_dir = `directionalLight -n "G_Directional"`;
+    string $b_dir = `directionalLight -n "B_Directional"`;
+    string $singleLight = `directionalLight -n "KeyLight"`;
+    string $lightLocator[] = `spaceLocator -n "Light_Handler"`;
+
+
+    scale 3 3 3 $lightLocator[0];
+    
+    catchQuiet(`parent $r_dir $lightLocator[0]`);
+    catchQuiet(`parent $g_dir $lightLocator[0]`);
+    catchQuiet(`parent $b_dir $lightLocator[0]`);
+    catchQuiet(`parent $singleLight $lightLocator[0]`);
+
+    
+    setAttr ($r_dir+".color") -type double3 1 0 0;
+    setAttr ($g_dir+".color") -type double3 0 1 0;
+    setAttr ($b_dir+".color") -type double3 0 0 1;
+    setAttr ($singleLight+".color") -type double3 1 1 1;
+    
+    addAttr -ln "Use_3_Light" -at bool -dv 0 $lightLocator[0];
+    setAttr -e -keyable true ($lightLocator[0]+".Use_3_Light");
+
+
+    string $reverseNode = `shadingNode -au -n "light_Reverse" "reverse"`;
+    connectAttr -f ($lightLocator[0]+".Use_3_Light") ($reverseNode+".inputX");
+
+    connectAttr -f ($reverseNode+".outputX") ($singleLight+".emitDiffuse");
+    
+    connectAttr -f ($lightLocator[0]+".Use_3_Light") ($r_dir+".emitDiffuse");
+    connectAttr -f ($lightLocator[0]+".Use_3_Light") ($g_dir+".emitDiffuse");
+    connectAttr -f ($lightLocator[0]+".Use_3_Light") ($b_dir+".emitDiffuse");
+
+    connectAttr -f ($reverseNode+".outputX") ($singleLight+".visibility");
+    connectAttr -f ($lightLocator[0]+".Use_3_Light") ($r_dir+".visibility");
+    connectAttr -f ($lightLocator[0]+".Use_3_Light") ($g_dir+".visibility");
+    connectAttr -f ($lightLocator[0]+".Use_3_Light") ($b_dir+".visibility");
+
+    rotate -90 0 90 ($r_dir);
+    rotate 0 0 0 ($g_dir);
+    rotate -90 -90 0 ($b_dir);
+    rotate -90 0 90 ($singleLight);
+    return {$r_dir,$g_dir,$b_dir,$singleLight};
+}
+
+
+
+
+global proc particle2VDB()
+{
+    if(`window -ex Particle2VDB_Window`)
+        deleteUI Particle2VDB_Window;
+
+    window -t "Particle2VDB_Hey" -w 150 -h 120 -sizeable off Particle2VDB_Window;
+    columnLayout;
+    button -l "Create Particle" -w 150 -h 30 -c "createParticleToCurve()" -bgc 0.1 0.3 0.5;
+    button -l "Create VDB Mesh" -w 150 -h 30  -c"createVDB(`ls -sl -dag -s`)" -bgc 0.15 0.35 0.55;
+    button -l "Create Light" -w 150 -h 30 -c "createRGBLight()" -bgc 0.2 0.4 0.6;
+    button -l "Create Material" -w 150 -h 30 -c"createMaterial(\"Tear_Preview\")" -bgc 0.25 0.45 0.65;
+    showWindow Particle2VDB_Window;
+}
+
+
+particle2VDB();
