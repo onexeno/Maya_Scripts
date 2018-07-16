@@ -1,15 +1,42 @@
-vector $p0,$p1,$p2,$p3,$p4,$p5,$p6,$p7;
+global proc vector [] getBoundingBox(string $object)
+{
+    vector $p0,$p1,$p2,$p3,$p4,$p5,$p6,$p7;
 
-float $box[] = `xform -q -ws -bb`;
+    float $box[] = `xform -q -ws -bb`;
 
-$p0 = <<$box[0],$box[1],$box[5]>>;
-$p1 = <<$box[3],$box[1],$box[5]>>;
-$p2 = <<$box[0],$box[4],$box[5]>>;
-$p3 = <<$box[3],$box[4],$box[5]>>;
-$p4 = <<$box[0],$box[4],$box[2]>>;
-$p5 = <<$box[3],$box[4],$box[2]>>;
-$p6 = <<$box[0],$box[1],$box[2]>>;
-$p7 = <<$box[3],$box[1],$box[2]>>;
+    $p0 = <<$box[0],$box[1],$box[5]>>;
+    $p1 = <<$box[3],$box[1],$box[5]>>;
+    $p2 = <<$box[0],$box[4],$box[5]>>;
+    $p3 = <<$box[3],$box[4],$box[5]>>;
+    $p4 = <<$box[0],$box[4],$box[2]>>;
+    $p5 = <<$box[3],$box[4],$box[2]>>;
+    $p6 = <<$box[0],$box[1],$box[2]>>;
+    $p7 = <<$box[3],$box[1],$box[2]>>;
 
-test
-crazy for my love
+    return {$p0,$p1,$p2,$p3,$p4,$p5,$p6,$p7};
+}
+
+global proc string genBoundingBoxMesh(string $objectName)
+{
+    vector $pArray[] = getBoundingBox($objectName);
+    string $bbox[] = `polyCube -n ($objectName+"_BoundingBox")`;
+    vector $p0 = $pArray[0];
+    vector $p1 = $pArray[1];
+    vector $p2 = $pArray[2];
+    vector $p3 = $pArray[3];
+    vector $p4 = $pArray[4];
+    vector $p5 = $pArray[5];
+    vector $p6 = $pArray[6];
+    vector $p7 = $pArray[7];
+
+    move ($p0.x) ($p0.y) ($p0.z) ($bbox[0]+".vtx[0]");
+    move ($p1.x) ($p1.y) ($p1.z) ($bbox[0]+".vtx[1]");
+    move ($p2.x) ($p2.y) ($p2.z) ($bbox[0]+".vtx[2]");
+    move ($p3.x) ($p3.y) ($p3.z) ($bbox[0]+".vtx[3]");
+    move ($p4.x) ($p4.y) ($p4.z) ($bbox[0]+".vtx[4]");
+    move ($p5.x) ($p5.y) ($p5.z) ($bbox[0]+".vtx[5]");
+    move ($p6.x) ($p6.y) ($p6.z) ($bbox[0]+".vtx[6]");
+    move ($p7.x) ($p7.y) ($p7.z) ($bbox[0]+".vtx[7]");
+    return $bbox[0];
+}
+
