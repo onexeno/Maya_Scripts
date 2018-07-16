@@ -1,8 +1,8 @@
-global proc vector [] getBoundingBox(string $object)
+global proc vector [] getBoundingBox(string $object[])
 {
     vector $p0,$p1,$p2,$p3,$p4,$p5,$p6,$p7;
 
-    float $box[] = `xform -q -ws -bb`;
+    float $box[] = `xform -q -ws -bb $object`;
 
     $p0 = <<$box[0],$box[1],$box[5]>>;
     $p1 = <<$box[3],$box[1],$box[5]>>;
@@ -12,14 +12,17 @@ global proc vector [] getBoundingBox(string $object)
     $p5 = <<$box[3],$box[4],$box[2]>>;
     $p6 = <<$box[0],$box[1],$box[2]>>;
     $p7 = <<$box[3],$box[1],$box[2]>>;
+    vector $center = ($p0+$p1+$p2+$p3+$p4+$p5+$p6+$p7)/8.0;
 
-    return {$p0,$p1,$p2,$p3,$p4,$p5,$p6,$p7};
+    return {$p0,$p1,$p2,$p3,$p4,$p5,$p6,$p7,$center};
 }
 
-global proc string genBoundingBoxMesh(string $objectName)
+
+
+global proc string genBoundingBoxMesh(string $objectName[])
 {
     vector $pArray[] = getBoundingBox($objectName);
-    string $bbox[] = `polyCube -n ($objectName+"_BoundingBox")`;
+    string $bbox[] = `polyCube`; 
     vector $p0 = $pArray[0];
     vector $p1 = $pArray[1];
     vector $p2 = $pArray[2];
@@ -39,4 +42,107 @@ global proc string genBoundingBoxMesh(string $objectName)
     move ($p7.x) ($p7.y) ($p7.z) ($bbox[0]+".vtx[7]");
     return $bbox[0];
 }
+
+global proc sliceObject(string $objectName)
+{
+
+}
+
+global proc int axisMeasure(string $objectName[])
+{
+    float $bbox[] = `xform -q -ws -bb $objectName`;
+
+    float $x = abs($bbox[3] - $bbox[0]);
+    float $y = abs($bbox[4] - $bbox[1]);
+    float $z = abs($bbox[5] - $bbox[2]);
+
+    float $index[] = {$x,$y,$z};
+    float $sortIndex[] = {$x,$y,$z};
+    $sortIndex = sort($sortIndex);
+    int $maxLengthAxisIndex = floatArrayFind($sortIndex[2],0,$index);
+    
+    /*if($maxLengthAxisIndex == 0)
+    {
+        return {$bbox[0],$bbox[3]};
+    }
+    else if($maxLengthAxisIndex == 1)
+    {
+        return {$bbox[1],$bbox[4]};
+    }
+    else
+    {
+        return {$bbox[2],$bbox[5]};
+    }*/
+    return $maxLengthAxisIndex;
+}
+
+global proc string [] meshToVertex(string $meshName)
+{
+    string $vertexTemp[];
+    if(`nodeType $meshName` == "mesh")
+    {
+        int $vNumbers[] = `polyEvaluate -v $meshName`;
+        for($i=0;$i<$vNumbers[0];$i++)
+        {
+            $vertexTemp[size($vertexTemp)] = $meshName+".vtx["+$i+"]";
+        }
+    }
+    else
+    {
+
+    }
+    return $vertexTemp;
+}
+
+global proc singleAxisSlicer(string $objectName,int $sliceNumber)
+{
+    string $allVertex[] = meshToVertex($objectName);
+    int $axis = axisMeasure($allVertex);
+    float $bbox[] = `xform -q -ws -bb $allVertex`;
+    float $min,$max;
+    $min = $bbox[$axis];
+    $max = $bbox[$axis+3];
+
+    float $subLength = abs($max - $min) / $sliceNumber; 
+    string $tempVertex[] = $allVertex;
+    string $boxs[];
+    for($i=0,$tempMin=$min,$tempMax=$min+$subLength;$i<$sliceNumber;$i++,$tempMin+=$subLength,$tempMax+=$subLength)
+    {
+        string $satVertex[];
+        
+        for($vtx in $tempVertex)
+        {
+            float $vtxPos[] = `xform -q -ws -t $vtx`;
+            if($vtxPos[$axis] - $tempMin>0 && $vtxPos[$axis] - $tempMax<0)
+            {
+                $satVertex[size($satVertex)] = $vtx;
+            }
+            else
+            {
+                
+            }
+        }
+        if(size($satVertex)>0)
+        {
+            $boxs[size($boxs)] = genBoundingBoxMesh($satVertex);
+            $tempVertex = stringArrayRemove($satVertex,$tempVertex);
+        }
+    }
+    if(size($boxs)>0)
+    {
+        for($box in $boxs)
+        {
+            vector $bbox[] = getBoundingBox(meshToVertex($box));
+            vector $center = $bbox[8];
+            string $locators[] = `spaceLocator`;
+            move ($center.x) ($center.y) ($center.z) $locators[0];
+        }
+    }
+}
+
+
+
+string $obj[] = `ls -sl -dag -s`;
+
+singleAxisSlicer($obj[0],20);
 
