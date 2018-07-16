@@ -1,17 +1,19 @@
 
+//用来对齐arnold volume 和 redshift volume拾取的vdb包裹盒
+//场景中要有fumefx解算源，先选择解算源，后选择volume对象
+global proc alignVdbVolumeToFumefx()
+{
+    string $vdb[] = `ls -sl -tr`;
+
+    string $fumefx[] = `listRelatives -typ "ffxDyna" $vdb[0]`;
+
+    float $length = `getAttr ($fumefx[0]+".length")`;
+    float $width = `getAttr ($fumefx[0]+".width")`;
 
 
+    vector $pivot = `xform -q -ws -t $vdb[0]`;
 
-string $vdb[] = `ls -sl -tr`;
+    vector $pos = <<$length/2 - $pivot.x,0,$width/2 - $pivot.z>>*-1;
 
-string $fumefx[] = `listRelatives -typ "ffxDyna" $vdb[0]`;
-
-float $length = `getAttr ($fumefx[0]+".length")`;
-float $width = `getAttr ($fumefx[0]+".width")`;
-
-
-vector $pivot = `xform -q -ws -t $vdb[0]`;
-
-vector $pos = <<$length/2 - $pivot.x,0,$width/2 - $pivot.z>>*-1;
-
-xform -ws -t ($pos.x) ($pos.y) ($pos.z) $vdb[1];
+    xform -ws -t ($pos.x) ($pos.y) ($pos.z) $vdb[1];
+}

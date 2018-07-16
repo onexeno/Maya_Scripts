@@ -108,7 +108,7 @@ global proc singleAxisSlicer(string $objectName,int $sliceNumber)
     string $boxs[];
     for($i=0,$tempMin=$min,$tempMax=$min+$subLength;$i<$sliceNumber;$i++,$tempMin+=$subLength,$tempMax+=$subLength)
     {
-        string $satVertex[];
+        // // // string $satVertex[];
         
         for($vtx in $tempVertex)
         {
