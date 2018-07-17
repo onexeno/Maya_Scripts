@@ -1,0 +1,15 @@
+
+
+global proc string padZero(int $number,int $zeroNum)
+{
+    string $sCount = $zeroNum;
+    string $sNumber = $number;
+    int $size = $zeroNum - size($sNumber);
+    string $formatNum;
+    for($i=0;$i<$size;$i++)
+    {
+        $formatNum += "0";
+    }
+    $formatNum += $sNumber;
+    return $formatNum;
+}
