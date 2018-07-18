@@ -1,0 +1,149 @@
+
+global string $assNodes[];
+global string $assDsos[];
+global string $assDsosWithoutPath[];
+global proc initAssNodeList(int $filter)
+{
+    global string $assNodes[];
+    global string $assDsos[];
+    global string $assDsosWithoutPath[];
+    string $assTemps[] = `ls -typ "aiStandIn"`;
+
+    if($filter==0)
+        $assNodes = $assTemps;  
+    else
+    {
+        for($assTemp in $assTemps)
+        {
+            if(size(`listRelatives -f -ap $assTemp`)>1)
+                $assNodes[size($assNodes)] = $assTemp;
+        }
+    }
+
+    for($assNode in $assNodes)
+    {
+        $assDsos[size($assDsos)] = `getAttr ($assNode+".dso")`;
+    }
+    for($i=0;$i<size($assDsos);$i++)
+    {
+
+        if(size($assDsos[$i]) == 0)
+        {
+            $assDsos[$i] = "None";
+            $assDsosWithoutPath[$i] = "None";
+        }
+        else
+        {
+            string $temp[];
+            tokenize $assDsos[$i] "/" $temp;
+            $assDsosWithoutPath[$i] = $temp[size($temp)-1];
+        }
+       
+    }
+}
+
+global proc clearGlobals()
+{
+    global string $assNodes[];
+    global string $assDsos[];
+    global string $assDsosWithoutPath[];
+    clear $assNodes;
+    clear $assDsos;
+    clear $assDsosWithoutPath;
+}
+
+global proc refreshList(int $switch)
+{
+    global string $assNodes[];
+    global string $assDsos[];
+    global string $assDsosWithoutPath[];
+
+
+
+    clearGlobals();
+
+    initAssNodeList(`checkBox -q -v FILTERCHECKBOX`);
+
+    textScrollList -e -ra INSTANCESCROLLLIST;
+
+    string $temps[];
+    if ($switch == 0)
+        $temps = $assNodes;
+    else if ($switch == 1)
+        $temps = $assDsos;
+    else
+        $temps = $assDsosWithoutPath;
+    for($temp in $temps)
+        textScrollList -e -a $temp INSTANCESCROLLLIST;
+}
+
+global proc string [] convertScrollListSelectionToIndexList()
+{
+    global string $assNodes[];
+    global string $assDsos[];
+    global string $assDsosWithoutPath[];
+    
+    int $multiIndices[] = `textScrollList -q -sii INSTANCESCROLLLIST`;
+    string $temps[];
+    for($index in $multiIndices)
+    {
+        $temps[size($temps)] = $assNodes[$index-1];
+    }
+    select -cl;
+    select -r $temps;
+    return $temps;
+}
+
+global proc converSelInstance()
+{
+    //只能选择做Instance的父级物体来转换，不能选择子级物体转换，否则其他instance会消失。
+    string $temps[] = convertScrollListSelectionToIndexList();
+    string $assTransforms[];
+    for($temp in $temps)
+    {
+        $assTransforms = stringArrayCatenate(`listRelatives -f -p $temp`,$assTransforms); //获取所有的aiStandInShape的transform上游节点
+    }
+    string $instanceParents[];
+    for($assTransform in $assTransforms)
+    {
+        listRelatives -f -ap $assTransform;
+        $instanceParents = stringArrayCatenate(`listRelatives -f -ap $assTransform`,$instanceParents);//获取所有aiStandIn的上游节点；
+
+    }
+
+    select -cl;
+    select -r $instanceParents;
+
+    convertInstanceToObject;
+}
+
+global proc instanceToObject()
+{
+    if(`window -ex INSTANCETOOBJECTWINDOW`)
+        deleteUI INSTANCETOOBJECTWINDOW;
+    
+    window -t "Instance2Object List" -cc "clearGlobals()" INSTANCETOOBJECTWINDOW;
+    columnLayout;
+    rowLayout -nc 2;
+    checkBox -l "Only Instancer" -v 1 FILTERCHECKBOX;
+    button -l "Convert Instance" -c "converSelInstance()";
+    setParent..;
+    scrollLayout -h 500 -w 500;
+    textScrollList -dcc "convertScrollListSelectionToIndexList()" -w 1200 -h 1200 INSTANCESCROLLLIST;
+
+    string $popMenu = `popupMenu -p INSTANCESCROLLLIST`;
+
+    menuItem -l "Show AssShape" -c "refreshList(0)" -p $popMenu;
+    menuItem -l "Show Filename" -c "refreshList(2)" -p $popMenu;
+    menuItem -l "Show FullPath" -c "refreshList(1)" -p $popMenu;
+
+
+    showWindow INSTANCETOOBJECTWINDOW;
+}
+
+instanceToObject;
+
+
+//convertInstanceToObject;
+
+
