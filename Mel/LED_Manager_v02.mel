@@ -1,0 +1,235 @@
+global int $ledScripts[];
+global int $useDup;
+
+global proc LED_Manager()
+{
+    global int $useDup;
+    $useDup = 0;
+    
+    if(`window -ex MAKELED`)
+        deleteUI MAKELED;
+
+    global int $ledScripts[];
+    clear $ledScripts;
+    $ledScripts[size($ledScripts)] = `scriptJob -kws -e "timeChanged" changeFieldTime`;
+    $ledScripts[size($ledScripts)] = `scriptJob -kws -e "playingBack" changeFieldTime`;
+
+
+    window -t "MakeLED_MainWindow" -cc "killScript()" MAKELED;
+    
+    columnLayout;
+    rowLayout -nc 4;
+    intField -v 6 -w 30 ROWNUMBERS;
+    text -l "x";
+    intField -v 6 -w 30 COLUMNNUMBERS;
+    button -w 50 -h 25 -l "Make It!" -c "makeGridLED()";
+    setParent..;
+    rowLayout -nc 2;
+    text -l "Frame is:";
+    textField -w 75 -h 50 -bgc 0.75 0.25 0.125 -tx (`currentTime -q`) CURRENTFRAMEFIELD;
+    setParent..;
+    //checkBox -l "Duplicated" -v 0 USEDUPLICATE;
+    textField -tx "polySphere" -w 125 OBJECTNAMEFIELD;
+    popupMenu OBJECTSPOPUPMENU;
+    menuItem -l "Sphere" -c "setObjectName(1)" -p OBJECTSPOPUPMENU;
+    menuItem -l "Box" -c "setObjectName(2)" -p OBJECTSPOPUPMENU;
+    menuItem -l "Grid" -c "setObjectName(3)" -p OBJECTSPOPUPMENU;
+    menuItem -l "Seleted" -c "setObjectName(4)" -p OBJECTSPOPUPMENU;
+    showWindow MAKELED;
+}
+//global string $buttonSpheres[];
+
+global proc setObjectName(int $index)
+{
+    global int $useDup;
+    string $objName;
+    string $duplicateName[] = `ls -sl`;
+    switch($index)
+    {
+        case 1:
+            $objName = "polySphere";
+            break;
+        case 2:
+            $objName = "polyCube";
+            break;
+        case 3:
+            $objName = "polyPlane";
+            $useDup = 3;
+            break;
+        case 4:
+            $objName = $duplicateName[0];
+            $useDup = 1;
+            break;
+        default:
+            break;
+    }
+    textField -e -tx $objName OBJECTNAMEFIELD;
+}
+
+global proc changeFieldTime()
+{
+    if(`control -q -ex CURRENTFRAMEFIELD`)
+    {
+        float $ctrFrame = `currentTime -q`;
+        textField -e -tx $ctrFrame CURRENTFRAMEFIELD;
+    }
+    else
+    {
+    }
+}
+
+global proc killScript()
+{
+    global int $ledScripts[];
+    global int $useDup;
+    for($id in $ledScripts)
+    {
+        scriptJob -f -k $id;
+    }
+    $useDup = 0;
+}
+
+//global string $buttonSpheres[];
+
+
+global proc makeGridLED()
+{
+    global int $useDup;
+
+    int $row = `intField -q -v ROWNUMBERS`;
+    int $column = `intField -q -v COLUMNNUMBERS`;
+
+    if(`window -ex MatrixWindow`)
+        deleteUI MatrixWindow;
+        
+    window -t "LED Matrix Controller" MatrixWindow;
+    rowColumnLayout -nc $row rclayout;
+
+    showWindow MatrixWindow;
+
+    string $redShader,$blackShader;
+
+    if(`objExists "LED_RedSurfaceShader"`) $redShader = "LED_RedSurfaceShader";
+    else $redShader = `shadingNode -as surfaceShader -n "LED_RedSurfaceShader"`;
+    if(`objExists "LED_BlkSurfaceShader"`) $blackShader = "LED_BlkSurfaceShader";
+    else $blackShader = `shadingNode -as surfaceShader -n "LED_BlkSurfaceShader"`;
+
+    setAttr ($redShader+".outColor") 1 0 0;
+    setAttr ($blackShader+".outColor") 0 0 0;
+    
+    //string $allRedBall[],$allBlackBall[];
+    
+    select -cl;
+    string $allGroup,$redGroup,$blackGroup;
+
+    
+
+    $allGroup = `group -em -n "All_LEDs"`;
+    $redGroup = `group -p $allGroup -em -n "Red_LEDs"`;
+    $blackGroup = `group -p $allGroup -em -n "Black_LEDs"`;
+    
+
+
+    connectAttr -f ($redGroup+".tx") ($blackGroup+".tx");
+    connectAttr -f ($redGroup+".ty") ($blackGroup+".ty");
+    connectAttr -f ($redGroup+".tz") ($blackGroup+".tz");
+    connectAttr -f ($redGroup+".rx") ($blackGroup+".rx");
+    connectAttr -f ($redGroup+".ry") ($blackGroup+".ry");
+    connectAttr -f ($redGroup+".rz") ($blackGroup+".rz");
+    connectAttr -f ($redGroup+".sx") ($blackGroup+".sx");
+    connectAttr -f ($redGroup+".sy") ($blackGroup+".sy");
+    connectAttr -f ($redGroup+".sz") ($blackGroup+".sz");
+    
+    addAttr -ln "red_scale" -at "float" $allGroup;
+    setAttr ($allGroup+".red_scale") 0.25;
+    setAttr -e -keyable on ($allGroup+".red_scale");
+
+    addAttr -ln "black_scale" -at "float" $allGroup;
+    setAttr ($allGroup+".black_scale") 0.23;
+    setAttr -e -keyable on ($allGroup+".black_scale");
+    
+    
+    string $createObjEval = `textField -q -tx OBJECTNAMEFIELD`;
+    if($useDup == 1)
+        $createObjEval = "duplicate -rr " + `textField -q -tx OBJECTNAMEFIELD`;
+    if($useDup == 3)
+        $createObjEval = "polyPlane -sw 1 -sh 1";
+    
+    for($i=1;$i<=$column;$i++)
+    {
+        for($j=1;$j<=$row;$j++)
+        {
+            string $button = `button -w 40 -h 40 -l ("["+$i+","+$j+"]") -bgc 0 0 0 -p rclayout`;
+            string $oriRedName[] = eval($createObjEval);
+            string $oriBlkName[] = eval($createObjEval);
+
+            //string $reverse = `shadingNode -au reverse`;
+            $redBall = $oriRedName[0];
+            $blackBall = $oriBlkName[0];
+
+            parent $redBall $redGroup;
+            parent $blackBall $blackGroup;
+
+            select -cl;
+            select $redBall;
+            hyperShade -a $redShader;
+            select -cl;
+            select $blackBall;
+            hyperShade -a $blackShader;
+            select -cl;
+            
+            //connectAttr -f ($redBall+".visibility") ($reverse+".inputX");
+            //connectAttr -f ($reverse+".outputX") ($blackBall+".visibility");
+            setAttr ($redBall+".visibility") 0;
+            
+            eval("button -e -c "+"\"buttonCmd("+"\\"+"\""+ $button+"\\"+"\""+","+"\\"+"\""+$redBall+"\\"+"\""+")" +"\"" + $button);
+
+            //$buttonSpheres[size($buttonSpheres)] = $button;
+            //$buttonSpheres[size($buttonSpheres)] = $redBall;
+            
+                
+            move ($j-1.0-($row-1.0)/2.0) 0 ($i-1.0-($column-1.0)/2.0) $redBall;
+            
+            //scale 0.25 0.25 0.25 $redBall;
+            connectAttr -f ($allGroup+".red_scale") ($redBall+".sx");
+            connectAttr -f ($allGroup+".red_scale") ($redBall+".sy");
+            connectAttr -f ($allGroup+".red_scale") ($redBall+".sz");
+
+            connectAttr -f ($redBall+".tx") ($blackBall+".tx");
+            connectAttr -f ($redBall+".ty") ($blackBall+".ty");
+            connectAttr -f ($redBall+".tz") ($blackBall+".tz");
+            
+            connectAttr -f ($allGroup+".black_scale") ($blackBall+".sx");
+            connectAttr -f ($allGroup+".black_scale") ($blackBall+".sy");
+            connectAttr -f ($allGroup+".black_scale") ($blackBall+".sz");
+
+            connectAttr -f ($redBall+".rx") ($blackBall+".rx");
+            connectAttr -f ($redBall+".ry") ($blackBall+".ry");
+            connectAttr -f ($redBall+".rz") ($blackBall+".rz");
+            
+            //$allRedBall[size($allRedBall)] = $redBall;
+            //$allBlackBall[size($allBlackBall)] = $blackBall;
+        }
+    }
+    $useDup = 0;
+}
+
+global proc buttonCmd(string $buttonName,string $sphere)
+{
+    vector $currentColor = `button -q -bgc $buttonName`;
+    if($currentColor.x == 1)
+    {
+        button -e -bgc 0 0 0 $buttonName;
+        setAttr ($sphere+".visibility") 0;
+    }
+    else
+    {
+        button -e -bgc 1 0 0 $buttonName;
+        setAttr ($sphere+".visibility") 1;
+    }
+
+}
+
+
+
+LED_Manager();

@@ -1,0 +1,137 @@
+global string $abcNodes[],$abcPaths[],$abcFullPaths[];
+
+global proc intializeGlobalVars()
+{
+    global string $abcNodes[],$abcPaths[],$abcFullPaths[];
+
+    $abcNodes = `ls -typ "AlembicNode"`;
+
+    for($abcNode in $abcNodes)
+    {
+        string $path = `getAttr ($abcNode+".abc_File")`;
+        if(size($path)==0)
+            $path = "None";
+        $abcFullPaths[size($abcFullPaths)] = $path;
+    }
+
+    for($i=0;$i<size($abcFullPaths);$i++)
+    {
+
+        if(size($abcFullPaths[$i]) == 0)
+        {
+            $abcFullPaths[$i] = "None";
+            $abcPaths[$i] = "None";
+        }
+        else
+        {
+            string $temp[];
+            tokenize $abcFullPaths[$i] "/" $temp;
+            $abcPaths[$i] = $temp[size($temp)-1];
+        }
+       
+    }
+}
+
+
+if(`window -ex ABC_PATH_MANAGER`)
+    deleteUI ABC_PATH_MANAGER;
+
+window -cc "clearGlobalVars()" -t "Alembic File Path Replacer" ABC_PATH_MANAGER;
+columnLayout;
+
+scrollLayout -w 500 -h 500;
+textScrollList -dcc "selectObjectBySelectedItemInList()" -ams on -w 800 -h 1200 ABC_PATH_LIST;
+string $abcPopMenu = `popupMenu -p ABC_PATH_LIST`;
+menuItem -l "Select Relative Objects" -c "getObjectsBySelectedAbcNode()" -p $abcPopMenu;
+menuItem -l "Select Abc Node" -c "selectObjectBySelectedItemInList()" -p $abcPopMenu;
+menuItem -l "Replace Selected Object" -c "replacePath()" -p $abcPopMenu;
+menuItem -l "Show AbcNodes" -c "refreshList(0)" -p $abcPopMenu;
+menuItem -l "Show AbcFullPath" -c "refreshList(1)" -p $abcPopMenu;
+menuItem -l "Show Filename" -c "refreshList(2)" -p $abcPopMenu;
+
+showWindow ABC_PATH_MANAGER;
+
+global proc clearGlobalVars()
+{
+    global string $abcNodes[],$abcPaths[],$abcFullPaths[];
+    clear $abcNodes;
+    clear $abcPaths;
+    clear $abcFullPaths;
+}
+
+global proc selectObjectBySelectedItemInList()
+{
+    global string $abcNodes[];
+    int $listSels[] = `textScrollList -q -sii ABC_PATH_LIST`;
+    select -cl;
+    for($index in $listSels)
+    {
+        select -add $abcNodes[$index-1];
+    }
+    
+}
+
+global proc refreshList(int $switch)
+{
+    global string $abcNodes[],$abcPaths[],$abcFullPaths[];
+
+    clearGlobalVars();
+
+    intializeGlobalVars();
+
+    textScrollList -e -ra ABC_PATH_LIST;
+
+    string $temps[];
+    if ($switch == 0)
+        $temps = $abcNodes;
+    else if ($switch == 1)
+        $temps = $abcFullPaths;
+    else
+        $temps = $abcPaths;
+    for($temp in $temps)
+        textScrollList -e -a $temp ABC_PATH_LIST;
+}
+
+
+global proc getObjectsBySelectedAbcNode()
+{
+    string $listAbcNodes[] = `textScrollList -q -si ABC_PATH_LIST`;
+    string $relObjects[];
+    for($abcNode in $listAbcNodes)
+    {
+        string $relTemps[] = `listConnections -s off $abcNode`;
+        for($relTemp in $relTemps)
+        {
+            $relObjects[size($relObjects)] = $relTemp;
+        }
+    }
+    select -cl;
+    select -r $relObjects;
+}
+
+
+
+global proc replacePath()
+{
+    global string $abcNodes[],$abcPaths[],$abcFullPaths[];
+
+    int $multiIndices[] = `textScrollList -q -sii ABC_PATH_LIST`;
+
+    
+    string $getNames[] = `fileDialog2 -fm 1 -cap "Alembic Nodes" -ff "Alembic Node(*.abc)"`;
+
+    if(size($getNames)==1)
+    {
+        for($index in $multiIndices)
+        {
+            catch(`setAttr ($abcNodes[$index-1] + ".abc_File") -type "string" $getNames[0]`);
+        }
+        //clearGlobalVars();
+    }
+    else
+    {
+        warning "Please Select Valid Abc File!";
+    }
+    
+}
+
