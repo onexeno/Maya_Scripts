@@ -115,22 +115,18 @@ global proc makeGridLED()
     else $blackShader = `shadingNode -as surfaceShader -n "LED_BlkSurfaceShader"`;
 
     setAttr ($redShader+".outColor") 1 0 0;
-    setAttr ($blackShader+".outColor") 0 0 0;
+    setAttr ($blackShader+".outColor") 0 0 1;
     
     //string $allRedBall[],$allBlackBall[];
     
     select -cl;
     string $allGroup,$redGroup,$blackGroup;
 
-    
-
     $allGroup = `group -em -n "All_LEDs"`;
     $redGroup = `group -p $allGroup -em -n "Red_LEDs"`;
     $blackGroup = `group -p $allGroup -em -n "Black_LEDs"`;
     
-
-
-    connectAttr -f ($redGroup+".tx") ($blackGroup+".tx");
+    /*connectAttr -f ($redGroup+".tx") ($blackGroup+".tx");
     connectAttr -f ($redGroup+".ty") ($blackGroup+".ty");
     connectAttr -f ($redGroup+".tz") ($blackGroup+".tz");
     connectAttr -f ($redGroup+".rx") ($blackGroup+".rx");
@@ -146,7 +142,7 @@ global proc makeGridLED()
 
     addAttr -ln "black_scale" -at "float" $allGroup;
     setAttr ($allGroup+".black_scale") 0.23;
-    setAttr -e -keyable on ($allGroup+".black_scale");
+    setAttr -e -keyable on ($allGroup+".black_scale");*/
     
     
     string $createObjEval = `textField -q -tx OBJECTNAMEFIELD`;
@@ -180,8 +176,14 @@ global proc makeGridLED()
             
             //connectAttr -f ($redBall+".visibility") ($reverse+".inputX");
             //connectAttr -f ($reverse+".outputX") ($blackBall+".visibility");
-            setAttr ($redBall+".visibility") 0;
-            
+            setAttr ($redBall+".visibility") 1;
+            setAttr ($redBall+".sx") 0.25;
+            setAttr ($redBall+".sy") 0.25;
+            setAttr ($redBall+".sz") 0.25;
+            setAttr ($blackBall+".sx") 0.23;
+            setAttr ($blackBall+".sy") 0.23;
+            setAttr ($blackBall+".sz") 0.23;
+
             eval("button -e -c "+"\"buttonCmd("+"\\"+"\""+ $button+"\\"+"\""+","+"\\"+"\""+$redBall+"\\"+"\""+")" +"\"" + $button);
 
             //$buttonSpheres[size($buttonSpheres)] = $button;
@@ -189,11 +191,12 @@ global proc makeGridLED()
             
                 
             move ($j-1.0-($row-1.0)/2.0) 0 ($i-1.0-($column-1.0)/2.0) $redBall;
-            
-            //scale 0.25 0.25 0.25 $redBall;
+            move ($j-1.0-($row-1.0)/2.0) 0 ($i-1.0-($column-1.0)/2.0) $blackBall;
+            /*scale 0.25 0.25 0.25 $redBall;
             connectAttr -f ($allGroup+".red_scale") ($redBall+".sx");
             connectAttr -f ($allGroup+".red_scale") ($redBall+".sy");
             connectAttr -f ($allGroup+".red_scale") ($redBall+".sz");
+
 
             connectAttr -f ($redBall+".tx") ($blackBall+".tx");
             connectAttr -f ($redBall+".ty") ($blackBall+".ty");
@@ -207,8 +210,8 @@ global proc makeGridLED()
             connectAttr -f ($redBall+".ry") ($blackBall+".ry");
             connectAttr -f ($redBall+".rz") ($blackBall+".rz");
             
-            //$allRedBall[size($allRedBall)] = $redBall;
-            //$allBlackBall[size($allBlackBall)] = $blackBall;
+            $allRedBall[size($allRedBall)] = $redBall;
+            $allBlackBall[size($allBlackBall)] = $blackBall;*/
         }
     }
     $useDup = 0;

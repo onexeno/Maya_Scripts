@@ -95,11 +95,12 @@ global proc refreshList(int $switch)
 
 global proc getObjectsBySelectedAbcNode()
 {
-    string $listAbcNodes[] = `textScrollList -q -si ABC_PATH_LIST`;
+    global string $abcNodes[],$abcPaths[],$abcFullPaths[];
+    int $listAbcNodes[] = `textScrollList -q -sii ABC_PATH_LIST`;
     string $relObjects[];
     for($abcNode in $listAbcNodes)
     {
-        string $relTemps[] = `listConnections -s off $abcNode`;
+        string $relTemps[] = `listConnections -s off $abcNodes[$abcNode-1]`;
         for($relTemp in $relTemps)
         {
             $relObjects[size($relObjects)] = $relTemp;

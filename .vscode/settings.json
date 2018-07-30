@@ -1,13 +1,22 @@
 {
-    "python.linting.pylintEnabled": true,
+    "python.linting.pylintEnabled": false,
+    "python.linting.pylintPath":"C:\\Program Files\\Autodesk\\Maya2018\\Python\\Scripts\\pylint.exe",
     //"python.pythonPath": "C:\\Program Files\\Side Effects Software\\Houdini 16.5.439\\python27",
     "python.pythonPath": "C:\\Program Files\\Autodesk\\Maya2018\\bin\\mayapy.exe",
     "python.autoComplete.extraPaths": [
         "${env.SPARK_HOME}\\python",
         "${env.SPARK_HOME}\\python\\pyspark",
-        "C:\\Program Files\\Autodesk\\Maya2018\\devkit\\devkit\\other\\pymel\\extras\\completion\\py",
+        "C:\\Program Files\\Autodesk\\Maya2018\\devkit\\other\\pymel\\extras\\completion\\py",
+        //"C:/Program Files/Autodesk/Maya2018/devkit/other/pymel/extras/completion/py",
+        "C:\\Program Files\\Autodesk\\Maya2018\\lib",
+        "C:\\Program Files\\Autodesk\\Maya2018\\Python\\Lib",
+        //"C:\\Program Files\\Autodesk\\Maya2018\\Python\\Lib\\site-packages",
     ],
+    //"python.autoComplete.preloadModules": ["maya"],
     "python.linting.enabled": true,
+    
+    //"python.linting.enabled": true,
+    //"python.linting.mypyEnabled": false,
     //"python.autoComplete.preloadModules": ["hou","maya"],
     //"python.autoComplete.showAdvancedMembers": true,
     //"python.pythonPath": "C:\\Python27\\python.exe"

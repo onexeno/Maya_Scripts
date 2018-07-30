@@ -23,4 +23,5 @@ if cd.nodeType(objList[0])==cd.nodeType(objList[1]):
 
 else:
     cd.warning("Choose Same Node Type!!!")
-    
+
+

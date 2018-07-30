@@ -1,7 +1,11 @@
-import pymel.core as core
+import maya.api.OpenMaya as OpenMaya
 import maya.cmds as cmds
+import maya.standalone as standalone
 
 
-import maya.api.OpenMaya
+def outside(name='pythonCMD'):
+    standalone.initialize(name)
 
-#print("This is a test"
+outside('pythonCMD')
+
+cmds.file('G:/Temp/wdas_cloud_2/wdas_cloud/cloud)test.mb',o=True)

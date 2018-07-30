@@ -151,12 +151,12 @@ def computeObjDistanceUI():
     mc.separator(w=2,style='none')
     mc.setParent(u=True)
     mc.separator(h=5)
-    mc.button(ann='Ñ¡ÔñÁ½¸ö¶¥µã£¬²âÁ¿¾àÀë',l='Point Distance',w=120,h=30,c='mc.text( textElements , e=True,l = computePointDistance() )',bgc=[0.1,0.2,0.3])
-    mc.button(ann='Ñ¡ÔñÁ½¸öÎïÌå£¬²âÁ¿¾àÀë',l='Object Distance',w=120,h=30,c='mc.text( textElements , e=True,l = computeObjDistance() )',bgc=[0.125,0.225,0.325])
-    mc.button(ann='Ñ¡ÔñÁ½¸ö¶¥µã£¬Éú³É²âÁ¿½Úµã',l='Point DisNode',w=120,h=30,c='disBetweenTwoVtxNode()',bgc=[0.15,0.25,0.35])
-    mc.button(ann='Ñ¡ÔñÁ½¸öÎïÌå,Éú³É²âÁ¿½Úµã',l='Object DisNode',w=120,h=30,c='disBetweenTwoObjNode()',bgc=[0.175,0.275,0.375])
-    mc.button(ann='Ñ¡ÔñÁ½¸ö¶¥µã£¬´´½¨Ïß¶Î',l='Create Curve',w=120,h=30,c='createCurveBetweenVertex()',bgc=[0.2,0.3,0.4])
-    mc.button(ann='É¾³ıµ±Ç°´´½¨µÄlocator½Úµã',l='Del Locator',w=120,h=30,c='deleteLocator()',bgc=[0.225,0.325,0.425])
+    mc.button(ann='é€‰æ‹©ä¸¤ä¸ªé¡¶ç‚¹ï¼Œæµ‹é‡è·ç¦»',l='Point Distance',w=120,h=30,c='mc.text( textElements , e=True,l = computePointDistance() )',bgc=[0.1,0.2,0.3])
+    mc.button(ann='é€‰æ‹©ä¸¤ä¸ªç‰©ä½“ï¼Œæµ‹é‡è·ç¦»',l='Object Distance',w=120,h=30,c='mc.text( textElements , e=True,l = computeObjDistance() )',bgc=[0.125,0.225,0.325])
+    mc.button(ann='é€‰æ‹©ä¸¤ä¸ªé¡¶ç‚¹ï¼Œç”Ÿæˆæµ‹é‡èŠ‚ç‚¹',l='Point DisNode',w=120,h=30,c='disBetweenTwoVtxNode()',bgc=[0.15,0.25,0.35])
+    mc.button(ann='é€‰æ‹©ä¸¤ä¸ªç‰©ä½“,ç”Ÿæˆæµ‹é‡èŠ‚ç‚¹',l='Object DisNode',w=120,h=30,c='disBetweenTwoObjNode()',bgc=[0.175,0.275,0.375])
+    mc.button(ann='é€‰æ‹©ä¸¤ä¸ªé¡¶ç‚¹ï¼Œåˆ›å»ºçº¿æ®µ',l='Create Curve',w=120,h=30,c='createCurveBetweenVertex()',bgc=[0.2,0.3,0.4])
+    mc.button(ann='åˆ é™¤å½“å‰åˆ›å»ºçš„locatorèŠ‚ç‚¹',l='Del Locator',w=120,h=30,c='deleteLocator()',bgc=[0.225,0.325,0.425])
     if(mc.window('computeDistanceUI',ex=True)):
        mc.windowPref('computeDistanceUI',r=True)
 
