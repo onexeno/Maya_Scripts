@@ -1,0 +1,164 @@
+global int $attrID,$aovID;
+global string $temps[],$aovName[],$nodes[];
+global string $idButton;
+
+global proc string padZero(int $number,int $zeroNum)
+{
+    string $sCount = $zeroNum;
+    string $sNumber = $number;
+    int $size = $zeroNum - size($sNumber);
+    string $formatNum;
+    for($i=0;$i<$size;$i++)
+    {
+        $formatNum += "0";
+    }
+    $formatNum += $sNumber;
+    return $formatNum;
+}
+
+global proc createAttr()
+{
+    global int $attrID,$aovID;
+    global string $temps[],$aovName[];
+    global string $idButton;
+    if($attrID%3==0)
+        $aovID++;
+        
+    string $attrName = "mtoa_constant_id_" + padZero($aovID,3);
+    for ($obj in `ls -sl -dag -s -ni -typ "mesh"`)
+    {
+        if(!`attributeQuery -n $obj -ex $attrName`)
+        {
+            addAttr -ln $attrName -at double3 $obj;
+            addAttr -ln ($attrName+"X") -at double -p ($attrName) $obj;
+            addAttr -ln ($attrName+"Y") -at double -p ($attrName) $obj;
+            addAttr -ln ($attrName+"Z") -at double -p ($attrName) $obj;
+            /*setAttr -e-keyable true ($obj+"."+$attrName);
+            setAttr -e-keyable true ($obj+"."+$attrName+"X");
+            setAttr -e-keyable true ($obj+"."+$attrName+"Y");
+            setAttr -e-keyable true ($obj+"."+$attrName+"Z");*/
+        }
+        setAttr ($obj+"."+$attrName) ($attrID%3==0?1:0) ($attrID%3==1?1:0) ($attrID%3==2?1:0);
+
+        $temps[size($temps)] = $obj;
+        catchQuiet(`setAttr ($obj+".template") 1`);
+        //setAttr ($obj+".overrideEnabled") 1;
+        //setAttr ($obj+".overrideVisibility") 0;    
+    }
+    if(`button -q -ex $idButton`)
+    {
+        button -e -l ("ID_"+padZero($aovID,3)) -bgc (($attrID+0)%3==0?0.5:0) (($attrID+0)%3==1?0.5:0) (($attrID+0)%3==2?0.5:0) $idButton;
+    }
+
+    $aovName[size($aovName)] = "id_" + padZero($aovID,3);
+    
+    $attrID++;    
+}
+
+global proc initializeGlobalVars()
+{
+    global int $attrID,$aovID;
+    global string $aovName[],$temps[],$nodes[];
+    $attrID = 0;
+    $aovID = analyseMaxId();
+    $aovName = {};
+    $temps = {};
+    $nodes = {};
+}
+
+global proc setVisibility()
+{
+    global string $temps[];
+    for($i=0;$i<size($temps);$i++)
+    {
+        //setAttr ($temps[$i]+".template") (!`getAttr ($temps[$i]+".template")`);
+        setAttr ($temps[$i]+".template") 0;
+        //setAttr ($temps[$i]+".overrideEnabled") (!`getAttr ($temps[$i]+".overrideEnabled")`);
+        //setAttr ($temps[$i]+".overrideVisibility") 1;
+    }
+}
+
+global proc createAOVByGlobal()
+{
+    global string $aovName[],$nodes[];
+    $aovName = stringArrayRemoveDuplicates($aovName);
+
+    if(`currentRenderer` == "arnold")
+    {
+            for($aov in $aovName)
+            {
+                if(!`objExists ("aiAOV_"+$aov)`)
+                {
+                    //python("from mtoa import aovs\n"+"aovs.AOVInterface().addAOV(\'"+$aov+"\',5)");
+                    string $node = `createNode -ss "aiAOV" -n ("aiAOV_"+$aov)`;
+                    string $audc = `shadingNode -as aiUserDataColor -n ("aiUserDataColor_"+$aov)`;
+                    $nodes[size($nodes)] = $node;
+                    $nodes[size($nodes)] = $audc;
+
+                    setAttr -type "string" ($node+".name") ($aov);
+                    setAttr -type "string" ($audc+".colorAttrName") ($aov);
+
+                    connectAttr -f -na ($node+".message") ("defaultArnoldRenderOptions.aovList");
+                    connectAttr -f ("defaultArnoldFilter.message") ($node+".outputs[0].filter");
+                    connectAttr -f ("defaultArnoldDriver.message") ($node+".outputs[0].driver");
+                    connectAttr -f ($audc+".outColor") ($node+".defaultValue");
+                }
+            }      
+    }
+
+    else
+    {
+        warning ("Please load \"mtoa!\n");
+    }
+}
+
+global proc clearNodes()
+{
+    global string $nodes[];
+    if(size($nodes)>0)
+    {   
+        delete $nodes;
+    }
+}
+
+global proc int analyseMaxId()
+{
+    //string $allMeshs[] = `ls -ni -typ "mesh"`;
+    string $allAOVs[] = `ls -typ "aiAOV"`;
+    int $array[];
+    for($aov in $allAOVs)
+    {
+        string $aovName = `getAttr ($aov+".name")`;
+        string $temp[];
+        tokenize $aovName "id_" $temp;           
+        $array[size($array)] = $temp[size($temp)-1];
+    }
+    if(size($array)>0)
+        {$array = sort($array);
+        return $array[size($array)-1];}
+    else
+        return 0;
+}
+
+global proc createAOVWindow()
+{
+    global int $attrID,$aovID;
+    global string $temps[],$aovName[];
+    global string $idButton;
+
+    initializeGlobalVars();
+
+    if (`window -ex AIAOVID`)
+        deleteUI AIAOVID;
+    
+    window -t "aiAovID" -w 200 -h 200 AIAOVID;
+    rowLayout -nc 4;
+    
+    $idButton = `button -c "createAttr()" -l ("ID_"+padZero($aovID,3)) -w 120 -h 40`; //-bgc ($attrID%3==0?1:0) ($attrID%3==1?1:0) ($attrID%3==2?1:0)`;
+    button -c "setVisibility()" -l "showObjects" -w 120 -h 40;
+    button -c "createAOVByGlobal()" -l "CreateAOV" -w 120 -h 40;
+    button -c "clearNodes()" -l "Delete Nodes" -w 120 -h 40;
+    showWindow();
+}
+
+createAOVWindow();
