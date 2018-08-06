@@ -1,0 +1,112 @@
+global int $attrID,$aovID;
+global string $temps[],$aovName[];
+
+global proc createAttr()
+{
+    global int $attrID;
+    global int $aovID;
+    global string $temps[],$aovName[];
+    if($attrID%3==0)
+        $aovID++;
+        
+    string $attrName = "mtoa_constant_id_" + ($aovID);
+    for ($obj in `ls -sl -dag -s -ni -typ "mesh"`)
+    {
+        if(!`attributeQuery -n $obj -ex $attrName`)
+        {
+            addAttr -ln $attrName -at double3 $obj;
+            addAttr -ln ($attrName+"X") -at double -p ($attrName) $obj;
+            addAttr -ln ($attrName+"Y") -at double -p ($attrName) $obj;
+            addAttr -ln ($attrName+"Z") -at double -p ($attrName) $obj;
+        }
+        
+        setAttr ($obj+"."+$attrName+"X") (($attrID%3)==0?1:0);
+        setAttr ($obj+"."+$attrName+"Y") (($attrID%3)==1?1:0);
+        setAttr ($obj+"."+$attrName+"Z") (($attrID%3)==2?1:0);
+        $temps[size($temps)] = $obj;
+        setAttr ($obj+".overrideEnabled") 1;
+        setAttr ($obj+".overrideVisibility") 0;    
+    }
+    
+    $aovName[size($aovName)] = "id_" + $aovID;
+    
+    $attrID++;
+    
+}
+
+
+global proc initializeGlobalVars()
+{
+    global int $attrID,$aovID;
+    global string $aovName[],$temps[];
+    $attrID = 0;
+    $aovID = 0;
+    $aovName = {};
+    $temps = {};
+//    $aovID = 1;
+}
+
+
+global proc globalVars()
+{
+    global int $attrID,$aovID;
+    if($attrID%3==0)
+        $aovID++;
+    
+    print ($attrID+"\t : ");
+    print $aovID;
+    $attrID++;
+}
+
+global proc setVisibility()
+{
+    global string $temps[];
+    for($i=1;$i<size($temps);$i++)
+    {
+        setAttr ($temps[$i]+".overrideEnabled") 0;
+        //setAttr ($temp+".overrideEnabled") 0;
+    }
+}
+
+
+global proc createAOVByGlobal()
+{
+    global string $aovName[];
+    if(`currentRenderer` == "arnold")
+    {
+            for($aov in $aovName)
+            {
+                if(!`objExists ("aiAOV_"+$aov)`)
+                {
+                    python("from mtoa import aovs\n"+
+                                "aovs.AOVInterface().addAOV(\'"+$aov+")");
+            
+                    string $aiUserDataColor = `createNode aiUserDataColor`;
+                    setAttr ($aiUserDataColor+".colorAttrName") $aovName;
+                    connectAttr -f -na ($aiUserDataColor+".message") ("defaultArnoldRenderOptions"+".aovList"); 
+                    connectAttr -f ("defaultArnoldDriver.message") ($aiUserDataColor+".outputs.driver");
+                    connectAttr -f ("defaultArnoldFilter.message") ($aiUserDataColor+".outputs.filter");
+                }
+            }
+        
+        
+    }
+    else
+    {
+        warning ("请加载\"mtoa!\n");
+    }
+}
+
+
+initializeGlobalVars();
+
+if (`window -ex AIAOVID`)
+    deleteUI AIAOVID;
+
+window -t "aiAovID" -cc "initializeGlobalVars()" -w 200 -h 200 AIAOVID;
+columnLayout;
+
+button -c "createAttr()" -l "CreateID" -w 150 -h 50;
+button -c "setVisibility()" -l "showObjects" -w 150 -h 50;
+button -c "createAOVByGlobal()" -l "CreateAOV" -w 150 -h 50;
+showWindow()
