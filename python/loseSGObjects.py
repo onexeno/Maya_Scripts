@@ -1,6 +1,23 @@
 import maya.cmds as cmds
-import pymel.core as core
+import maya.api.OpenMaya as OpenMaya
 
 
-downloadStream = core.listConnections(object,s=off,c=off)
+selectionList = OpenMaya.MGlobal.getActiveSelectionList()
+
+selectionIter = OpenMaya.MItSelectionList(selectionList)
+
+
+
+while selectionIter.isDone()==False:
+    dagNode = selectionIter.getDagPath()    
+    dagNodeShape = dagNode.extendToShape()  #still a MDagPath Object
+
+    dgNode = OpenMaya.MFnDependencyNode(selectionIter.getDependNode())  #MFnDependencyNode(MObject)
+    dgPlug = OpenMaya.MPlug(selectionIter.getDependNode(),dgNode.attribtue('opacity'))
+
+    
+
+
+    selectionIter.next()
+
 
