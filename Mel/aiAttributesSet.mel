@@ -1,0 +1,131 @@
+string $meshAttributes[] = {
+										"holdOut" , "Hold-Out" , "boolean", 0, 0,
+										"smoothShading" , "Smooth Shading" , "boolean", 0, 0,
+										"primaryVisibility" , "Primary Visibility" , "boolean", 1, 1,
+										"castsShadows" , "Casts Shadows" , "boolean", 1, 1,
+										"receiveShadows" , "Receive Shadows" , "boolean", 1, 1,
+										"motionBlur" , "Motion Blur" , "boolean", 1, 1,
+										"visibleInReflections" , "Visible In Reflection" , "boolean", 1, 1,
+										"visibleInRefractions" , "Visbile In Refraction", "boolean", 1, 1,
+										"doubleSided" , "Double Sided" , "boolean", 1, 1,
+										"opposite" , "Opposite" , "boolean", 1,0
+										};
+										
+string $aiMeshAttributes[] = {
+											"aiOpaque"  , "Opaque" , "boolean", 1, 1,
+											"aiMatte" , "Matte" ,"boolean", 1, 0,
+											"primaryVisibility" , "Primary Visibility" , "boolean", 1, 1,
+											"castsShadows" , "Casts Shadows" ,"boolean", 1, 1,
+											"aiVisibleInDiffuseReflection" , "Diffuse Reflection" , "boolean", 1, 1,
+											"aiVisibleInSpecularReflection" , "Specular Reflection" , "boolean", 1, 1,
+											"aiVisibleInDiffuseTransmission" , "Diffuse Transmission" , "boolean", 1, 1,
+											"aiVisibleInSpecularTransmission" , "Specular Transmission" , "boolean", 1, 1,
+											"aiVisibleInVolume" , "Volume" , "boolean", 0, 0,
+											"aiSelfShadows" , "Self Shadows" , "boolean", 1,1
+											};
+
+string $aiExportAttributes[] = {
+											"aiExportTangents" , "Export Tangents" , "boolean", 1, 0,
+											"aiExportColors" , "Export Vertex Colors" , "boolean", 1, 0,
+											"aiExportRefPoints" , "Export Reference Positions", "boolean", 1, 1,
+											"aiExportRefNormals" , "Export Reference Normals", "boolean", 1, 0,
+											"aiExportRefTangents" , "Export Reference Tangents", "boolean", 1,0
+											};
+											
+string $aiSubdivisonAttributes[] = {
+													"aiSubdivType" , "Type", "int", 1, 0,
+													"aiSubdivIterations" , "Iterations" , "int", 1, 1,
+													"aiSubdivSmoothDerivs" , "Smooth Tangents" , "boolean", 1,0
+													};
+
+string $aiDisplacementAttributes[] = {
+														"aiDispHeight" , "Height" , "double", 1, 1.0,
+														"aiDispPadding" , "Bounds Padding", "double", 1, 0.0,
+														"aiDispZeroValue" , "Scalar Zero Value", "double", 1, 0.0,
+														"aiDispAutobump" , "Auto Bump" , "boolean", 1, 0
+														};
+														
+string $aiVolumeAttributes[] = {
+											"aiStepSize" , "Step Size" , "double", 1,0.0,
+											"aiVolumePadding" , "Volume Padding" , "double", 1,0.0
+											};
+											
+string $extraAttributes[] = {
+										"displayMapBorders" , "Display Map Borders" , "boolean", 1, 0,
+										"displayColors" , "Display Colors" , "boolean", 1, 0,
+										"displayBorders" , "Display Borders", "boolean", 1, 0,
+										"displayImmediate" , "Display Immediate", "boolean", 1, 0,
+										"displayVertices" , "Display Vertices", "boolean", 1, 0,
+										"vertexSize" , "Vertex Size", "int", 1, 3,
+										"displayCenter" , "Display Center", "boolean", 1, 0,
+										"displayTriangles" , "Display Triangles", "boolean", 1, 0,
+										"displayUVs" , "Display UVs", "boolean", 1, 0,
+										"displayNonPlanar" , "Display Non-Planar", "boolean", 1, 0,
+										"displayInvisibleFaces" , "Display Invisible Faces", "boolean", 1, 0,
+										"displayNormal" , "Display Normal", "boolean", 1, 0,
+										"displayTangent" , "Display Tangent", "boolean", 1, 0,
+										"normalSize" , "Normal Size", "double", 1,1.0,
+										"normalType" , "Normal Type", "int", 1,1
+										};
+										
+
+if (`window -ex AiAttributesManager`)										
+	deleteUI AiAttributesManager;
+	
+window -t "AiAttributesManager" -w 250 -h 600 AiAttributesManager;
+columnLayout;
+
+for($i=0;$i<size($aiMeshAttributes);$i+=5)
+{
+	int $switch = $aiMeshAttributes[$i+3];
+	if($switch == 1)
+		controlCreator($aiMeshAttributes[$i+1],$aiMeshAttributes[$i+2],$aiMeshAttributes[$i+4]);
+}		
+
+showWindow AiAttributesManager;
+										
+								
+
+global proc string controlCreator(string $attributesName, string $attributesType, string $defaultValue)
+{
+	string $controlType,$controlName;
+	switch ($attributesType)
+	{
+		case "boolean":
+		{
+			int $switch = $defaultValue;
+			$controlName = `checkBox -l $attributesName -v $switch`;
+			$controlType = "checkBox";
+			break;
+		}
+		case "double":
+		{
+			float $value = $defaultValue;
+			$controlName = `floatSliderGrp -l $attributesName -v $value`;
+			$controlType = "floatSliderGrp";
+			break;
+		}
+		case "int":
+		{
+			int $value = $defaultValue;
+			$controlName = `intSliderGrp -l $attributesName -v $value`;
+			$controlType = "intSliderGrp";
+			break;
+		}
+		case "string":
+		{
+			$controlName = `textFieldGrp -l $attributesName -tx $defaultValue`;
+			$controlType = "textFieldGrp";
+			break;
+		}
+		default:
+			return "";
+	}
+	
+	return $controlName;
+}
+
+global proc setControlCommand(string $controlType)
+{
+	
+}
