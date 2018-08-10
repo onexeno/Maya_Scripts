@@ -327,7 +327,7 @@ global proc string [] controlCreator(string $attributesName, string $attributesT
 		case "double":
 		{
 			float $value = $defaultValue;
-			$controlName = `floatSliderGrp -l $attributesName -v $value -field on`;
+			$controlName = `floatSliderGrp -pre 5 -l $attributesName -v $value -field on`;
 			string $editCommand = "`floatSliderGrp -q -v " + $controlName +"`";
 			eval("floatSliderGrp -e -cc " + "\"" + "connectAttrs(" + "\\" + "\"" + $attrLongName + "\\"+"\","  + "\\" + "\"" + $attributesType +"\\"+ "\"," +$editCommand+") " + "\"" + $controlName);
 			$controlType = "floatSliderGrp";
