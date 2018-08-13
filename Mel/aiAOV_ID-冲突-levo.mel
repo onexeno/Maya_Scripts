@@ -1,9 +1,5 @@
 global int $attrID,$aovID;
-<<<<<<< HEAD
 global string $temps[],$aovName[],$nodes[];
-=======
-global string $temps[],$aovName[];
->>>>>>> dfd04592584293f353dc88529b757810d2c6203b
 global string $idButton;
 
 global proc string padZero(int $number,int $zeroNum)
@@ -37,18 +33,14 @@ global proc createAttr()
             addAttr -ln ($attrName+"X") -at double -p ($attrName) $obj;
             addAttr -ln ($attrName+"Y") -at double -p ($attrName) $obj;
             addAttr -ln ($attrName+"Z") -at double -p ($attrName) $obj;
-<<<<<<< HEAD
             /*setAttr -e-keyable true ($obj+"."+$attrName);
             setAttr -e-keyable true ($obj+"."+$attrName+"X");
             setAttr -e-keyable true ($obj+"."+$attrName+"Y");
             setAttr -e-keyable true ($obj+"."+$attrName+"Z");*/
-=======
->>>>>>> dfd04592584293f353dc88529b757810d2c6203b
         }
         setAttr ($obj+"."+$attrName) ($attrID%3==0?1:0) ($attrID%3==1?1:0) ($attrID%3==2?1:0);
 
         $temps[size($temps)] = $obj;
-<<<<<<< HEAD
         catchQuiet(`setAttr ($obj+".template") 1`);
         //setAttr ($obj+".overrideEnabled") 1;
         //setAttr ($obj+".overrideVisibility") 0;    
@@ -56,14 +48,6 @@ global proc createAttr()
     if(`button -q -ex $idButton`)
     {
         button -e -l ("ID_"+padZero($aovID,3)) -bgc (($attrID+0)%3==0?0.5:0) (($attrID+0)%3==1?0.5:0) (($attrID+0)%3==2?0.5:0) $idButton;
-=======
-        setAttr ($obj+".overrideEnabled") 1;
-        setAttr ($obj+".overrideVisibility") 0;    
-    }
-    if(`button -q -ex $idButton`)
-    {
-        button -e -l ("ID_"+padZero($aovID,3)) -bgc (($attrID+0)%3==0?1:0) (($attrID+0)%3==1?1:0) (($attrID+0)%3==2?1:0) $idButton;
->>>>>>> dfd04592584293f353dc88529b757810d2c6203b
     }
 
     $aovName[size($aovName)] = "id_" + padZero($aovID,3);
@@ -74,20 +58,12 @@ global proc createAttr()
 global proc initializeGlobalVars()
 {
     global int $attrID,$aovID;
-<<<<<<< HEAD
     global string $aovName[],$temps[],$nodes[];
-=======
-    global string $aovName[],$temps[];
->>>>>>> dfd04592584293f353dc88529b757810d2c6203b
     $attrID = 0;
     $aovID = analyseMaxId();
     $aovName = {};
     $temps = {};
-<<<<<<< HEAD
     $nodes = {};
-=======
-//    $aovID = 1;
->>>>>>> dfd04592584293f353dc88529b757810d2c6203b
 }
 
 global proc setVisibility()
@@ -95,28 +71,18 @@ global proc setVisibility()
     global string $temps[];
     for($i=0;$i<size($temps);$i++)
     {
-<<<<<<< HEAD
         //setAttr ($temps[$i]+".template") (!`getAttr ($temps[$i]+".template")`);
         setAttr ($temps[$i]+".template") 0;
         //setAttr ($temps[$i]+".overrideEnabled") (!`getAttr ($temps[$i]+".overrideEnabled")`);
         //setAttr ($temps[$i]+".overrideVisibility") 1;
-=======
-        setAttr ($temps[$i]+".overrideEnabled") (!`getAttr ($temps[$i]+".overrideEnabled")`);
-        //setAttr ($temp+".overrideEnabled") 0;
->>>>>>> dfd04592584293f353dc88529b757810d2c6203b
     }
 }
 
 global proc createAOVByGlobal()
 {
-<<<<<<< HEAD
     global string $aovName[],$nodes[];
     $aovName = stringArrayRemoveDuplicates($aovName);
 
-=======
-    global string $aovName[];
-    $aovName = stringArrayRemoveDuplicates($aovName);
->>>>>>> dfd04592584293f353dc88529b757810d2c6203b
     if(`currentRenderer` == "arnold")
     {
             for($aov in $aovName)
@@ -125,15 +91,10 @@ global proc createAOVByGlobal()
                 {
                     //python("from mtoa import aovs\n"+"aovs.AOVInterface().addAOV(\'"+$aov+"\',5)");
                     string $node = `createNode -ss "aiAOV" -n ("aiAOV_"+$aov)`;
-<<<<<<< HEAD
                     string $audc = `shadingNode -as aiUserDataColor -n ("aiUserDataColor_"+$aov)`;
                     $nodes[size($nodes)] = $node;
                     $nodes[size($nodes)] = $audc;
 
-=======
-                    string $audc = `createNode -ss "aiUserDataColor" -n ("aiUserDataColor_"+$aov)`;
-                    
->>>>>>> dfd04592584293f353dc88529b757810d2c6203b
                     setAttr -type "string" ($node+".name") ($aov);
                     setAttr -type "string" ($audc+".colorAttrName") ($aov);
 
@@ -144,7 +105,6 @@ global proc createAOVByGlobal()
                 }
             }      
     }
-<<<<<<< HEAD
 
     else
     {
@@ -160,14 +120,6 @@ global proc clearNodes()
         delete $nodes;
     }
 }
-=======
-    else
-    {
-        warning ("请加载\"mtoa!\n");
-    }
-}
-
->>>>>>> dfd04592584293f353dc88529b757810d2c6203b
 
 global proc int analyseMaxId()
 {
@@ -199,7 +151,6 @@ global proc createAOVWindow()
     if (`window -ex AIAOVID`)
         deleteUI AIAOVID;
     
-<<<<<<< HEAD
     window -t "aiAovID" -w 200 -h 200 AIAOVID;
     rowLayout -nc 4;
     
@@ -207,14 +158,6 @@ global proc createAOVWindow()
     button -c "setVisibility()" -l "showObjects" -w 120 -h 40;
     button -c "createAOVByGlobal()" -l "CreateAOV" -w 120 -h 40;
     button -c "clearNodes()" -l "Delete Nodes" -w 120 -h 40;
-=======
-    window -t "aiAovID" -cc "initializeGlobalVars()" -w 200 -h 200 AIAOVID;
-    columnLayout;
-    
-    $idButton = `button -c "createAttr()" -l ("ID_"+padZero($aovID,3)) -w 150 -h 50 -bgc ($attrID%3==0?1:0) ($attrID%3==1?1:0) ($attrID%3==2?1:0)`;
-    button -c "setVisibility()" -l "showObjects" -w 150 -h 50;
-    button -c "createAOVByGlobal()" -l "CreateAOV" -w 150 -h 50;
->>>>>>> dfd04592584293f353dc88529b757810d2c6203b
     showWindow();
 }
 
