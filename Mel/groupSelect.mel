@@ -1,0 +1,65 @@
+proc selType()
+{
+    global string $allDesc[];
+    
+    string $selType = `optionMenu -q -v selectionTypeMenu`;
+    string $nodes[];
+    for ($group in $allDesc)
+    {
+        string $temps[] = `listRelatives -ad -ni -c -f -type $selType $group`;
+        for($temp in $temps)
+        {
+            $nodes[size($nodes)] = $temp;
+        }
+    }
+    select -r $nodes;
+}
+
+proc groupSelect()
+{
+    global string $allDesc[];
+    if(`window -ex groupSelection`)
+        deleteUI groupSelection;
+        
+    window -t "Group Selection Window" -cc "clear $allDesc" -w 200 -h 75 groupSelection;
+    columnLayout;
+    optionMenu -l "Selection Type" selectionTypeMenu;
+    showWindow groupSelection;
+    string $typeList[];
+    
+    
+    
+    $allDesc = `ls -sl`;
+    
+    for ($sel in $allDesc)
+    { 
+        string $groupNodes[] = `listRelatives -f -ad -c -ni $sel`;
+        for($node in $groupNodes)
+        {
+            $typeList[size($typeList)] = `nodeType $node`;
+        }
+        
+    }
+    
+    $typeList = stringArrayRemoveDuplicates($typeList);
+    
+    string $menuItem;
+    if(stringArrayCount("mesh",$typeList)>=1)
+    {
+        string $menuItem = `menuItem -l ("mesh") -p selectionTypeMenu`;
+        $typeList = stringArrayRemove({"mesh"},$typeList);        
+    }
+    
+    for($type in $typeList)
+    {
+        string $menu = `menuItem -l ($type) -p selectionTypeMenu`;
+    }
+    
+    optionMenu -e -cc "selType()" selectionTypeMenu;
+    
+
+}
+
+
+
+groupSelect();
