@@ -1,0 +1,92 @@
+//YM_ReplaceName - 重命名节点
+global string $regularExprTextField;
+global string $resultExprTextField;
+global string $nodeScrollList;
+global string $resultScrollList;
+global string $replaceTextField;
+
+if(`window -ex ExprSearch`)
+    deleteUI ExprSearch;
+
+window -t "ExprEditor" ExprSearch;
+frameLayout -l "Lol" -vis off;
+rowLayout -nc 2;
+columnLayout;
+//$regularExprTextField = `textField -w 200 -tcc "string $temp=matchExpression($objList[0]);textField -e -tx $temp $resultExprTextField"`;
+$regularExprTextField = `textField -w 400 -tx "." -tcc "refreshList"`;
+$replaceTextField = `textField -w 400 -tcc "refreshList"`;
+setParent..;
+button -l "Replace String" -c "renameNode" -h 38 -w 105;
+setParent..;
+scrollLayout -h 300;
+rowLayout -nc 2;
+$nodeScrollList = `textScrollList -h 1000`;
+$resultScrollList = `textScrollList -h 1000`;
+setParent..;
+setParent -top;
+showWindow ExprSearch;
+
+scriptJob -e "SelectionChanged" refreshList -p "ExprSearch";
+
+
+global proc renameNode()
+{
+    global string $nodeScrollList,$resultScrollList;
+    string $buffers[] = `textScrollList -q -ai $nodeScrollList`;
+    string $resultBuffers[] = `textScrollList -q -ai $resultScrollList`;
+
+    if(size($buffers) == size($resultBuffers))
+    {
+        for($i=0;$i<size($buffers);$i++)
+        {
+            catchQuiet(`rename $buffers[$i] $resultBuffers[$i]`);
+        }
+    }
+}
+
+global proc filterList()
+{
+    global string $nodeScrollList,$resultScrollList;
+    global string $replaceTextField;
+    global string $regularExprTextField;
+
+    string $replaceString = `textField -q -tx $replaceTextField`;
+
+    string $buffers[] = `textScrollList -q -ai $nodeScrollList`;
+
+    textScrollList -e -ra $resultScrollList;
+    for ($buffer in $buffers)
+    {
+        string $regular = `textField -q -tx $regularExprTextField`;
+        string $tempString = `substitute $regular $buffer $replaceString`;
+        textScrollList -e -a $tempString $resultScrollList;
+    }
+}
+
+
+global proc refreshList()
+{
+    global string $nodeScrollList;
+    string $buffers[] = `ls -sl`;
+    textScrollList -e -ra $nodeScrollList;
+    for ($buffer in $buffers)
+    {
+        string $temp = matchExpression($buffer);
+        if(size($temp)>0)
+        {
+        textScrollList -e -a $buffer $nodeScrollList;
+        }
+        else
+            continue;
+    }
+    filterList;
+}
+
+
+global proc string matchExpression(string $matchString)
+{
+    global string $regularExprTextField;
+    string $expr = `textField -q -tx $regularExprTextField`;
+    return (`match $expr $matchString`);
+}
+

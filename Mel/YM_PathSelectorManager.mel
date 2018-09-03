@@ -1,3 +1,5 @@
+//YM_PathSelectorManager - ·������
+
 global string $pathIconList,$pathTagList,$addTagTextField,$addPathTextField,$filePath,$checkBox1,$button1,$iconList;
 global string $file = "userPath";
 
@@ -76,9 +78,9 @@ global proc fileWindow(string $pathList)
     if(`window -ex melWindow`)
         deleteUI melWindow;
     window -t "melSource" melWindow;
-    scrollLayout;
-    $textField1 = `textField -w 300 -tx $path[0] -en off`;
-    $scTextList = `textScrollList -w 300 -ams off -dcc "sourceMel($textField1,$scTextList)"`;
+    scrollLayout -h 600 -h 200;
+    $textField1 = `textField -w 500 -tx $path[0] -en off`;
+    $scTextList = `textScrollList -w 500 -h 900 -ams off -dcc "sourceMel($textField1,$scTextList)"`;
     showWindow melWindow;
     string $temp = `textField -q -tx $textField1`;
     string $melList[] = `getFileList -fld $temp -fs "*.mel"`;
@@ -184,7 +186,6 @@ global proc addPathString(string $pathTagList,string $pathList,string $pathItem,
 
 }
 
-//同步选择
 global proc selectListSync(string $list1,string $list2)
 {
     int $indexs[] = `textScrollList -q -sii $list1`;
@@ -219,7 +220,6 @@ global proc deleteListItemSync(string $list1,string $list2)
 
 }
 
-//增加过滤器
 global proc filterText(string $textField,string $scrollList,string $nodes[])
 {
     //global string $tf1 , $tsl1;
@@ -230,7 +230,7 @@ global proc filterText(string $textField,string $scrollList,string $nodes[])
     string $temps[] = $nodes;
 
     string $nowTemp[];
-    if(size($text)!=0)    //找全称
+    if(size($text)!=0)    
     {
         for($file in $temps)
         {
@@ -240,7 +240,7 @@ global proc filterText(string $textField,string $scrollList,string $nodes[])
             }
         }
 
-        if(size($nowTemp)==0)  //如果找不到全称，就找近似
+        if(size($nowTemp)==0) 
         {
             for($file in $temps)
             {
@@ -257,7 +257,7 @@ global proc filterText(string $textField,string $scrollList,string $nodes[])
             textScrollList -e -a $now $scrollList;
         }
     }
-    else if (size($text)==0)   //如果输入框为0则返回全节点列表
+    else if (size($text)==0) 
     {
         textScrollList -e -ra $scrollList;
         for($file in $temps)
@@ -268,40 +268,36 @@ global proc filterText(string $textField,string $scrollList,string $nodes[])
 
 }
 
-
-//覆写文件
 global proc writeToPathFile(string $list[],string $filenamePath)
 {
-    /*if(`filetest -w ($filenamePath)`)  //检测文件是否存在
+    /*if(`filetest -w ($filenamePath)`)  
     {
-        int $fileId = `fopen ($filenamePath) "w"`;  //打开文件 并返回打开序号
+        int $fileId = `fopen ($filenamePath) "w"`; 
         for($i=0,$j=1;$i<size($list);$i+=2,$j+=2)
         {
-            fprint $fileId ($list[$i] + "*" + $list[$j] + "\n");  //在路径和标签中间加上"*"，方便提取
+            fprint $fileId ($list[$i] + "*" + $list[$j] + "\n");  
         }
-        fclose $fileId;  //关闭文件
+        fclose $fileId; 
     }*/
 
-    int $fileId = `fopen ($filenamePath) "w"`;  //打开文件 并返回打开序号
+    int $fileId = `fopen ($filenamePath) "w"`; 
     for($i=0,$j=1;$i<size($list);$i+=2,$j+=2)
     {
-        fprint $fileId ($list[$i] + "*" + $list[$j] + "\n");  //在路径和标签中间加上"*"，方便提取
+        fprint $fileId ($list[$i] + "*" + $list[$j] + "\n"); 
     }
-    fclose $fileId;  //关闭文件
+    fclose $fileId;  
 
 }
 
-
-//读文件
 global proc string [] readFromPathFile(string $filenamePath)
 {
-    if(`filetest -r ($filenamePath)`)   //检测文件是否存在
+    if(`filetest -r ($filenamePath)`)  
     {
-        string $allLine[] = freadAllLines ($filenamePath);  //读所有行
+        string $allLine[] = freadAllLines ($filenamePath); 
         string $tempArray[] = {};
         for($line in $allLine)
         {
-            $tempArray = stringArrayCatenate($tempArray,stringToStringArray($line,"*"));  //用"*"将字符串分割为字符串数组
+            $tempArray = stringArrayCatenate($tempArray,stringToStringArray($line,"*")); 
         }
         return $tempArray;
     }
@@ -313,18 +309,16 @@ global proc string [] readFromPathFile(string $filenamePath)
 
 }
 
-
-//获取当前工程目录下的所有目录
 global proc string [] getProjectPathFolder(string $rootPath)
 {
-    //string $projectsPath = `workspace -q -rd`;   //rd是获取当前工程目录
-    string $fileInProjects[] = `getFileList -fld $rootPath`;  //获取当前目录下所有的文件
+    //string $projectsPath = `workspace -q -rd`;   
+    string $fileInProjects[] = `getFileList -fld $rootPath`; 
     string $folderList[] = {};
 
     for($file in $fileInProjects)
     {
 
-        if(`filetest -d ($rootPath+$file)`)   //如果检测为文件夹则添加到列表中
+        if(`filetest -d ($rootPath+$file)`)  
         {
             $folderList[size($folderList)] = $rootPath+$file;
         }
@@ -337,56 +331,53 @@ global proc string [] getProjectPathFolder(string $rootPath)
 }
 
 
-//给每个路径添加Tag
 global proc string [] addTagToArray(string $oriArray[])
 {
     string $temp[] = {};
     string $operatedArray[] = {};
     for($oriString in $oriArray)
     {
-        tokenize $oriString "/" $temp;  //用"/"分割路径
-        $operatedArray[size($operatedArray)] = $oriString;  //奇数字符串为原始字符串,也就是路径头
-        $operatedArray[size($operatedArray)] = goUpperOrLower($temp[size($temp)-1],1,1,1);   //偶数字符串位原始字符串最后一个单词,也就是路径标签,转换首字母大写
-
+        tokenize $oriString "/" $temp;
+        $operatedArray[size($operatedArray)] = $oriString;
+        $operatedArray[size($operatedArray)] = goUpperOrLower($temp[size($temp)-1],1,1,1);  
     }
     return $operatedArray;
 }
 
-//将对应位置的字符转换大小写
+
 global proc string goUpperOrLower(string $word,int $start,int $end,int $trigger)
 {
     string $toWord;
     if($trigger == 1)
     {
         $toWord = toupper(`substring $word $start $end`);
-        //转换从start到end的字符为大写
+        
     }
     else
     {
         $toWord = tolower(`substring $word $start $end`);
-        //转换从start到end的字符位小写
+
     }
 
-    //如果要转换的字符串是从首字母开始，但是不到最后一个字符
+
     if($start==1&&$end!=size($word))
     {
         string $otherWord = `substring $word ($end+1) (size($word))`;
         return ($toWord + $otherWord);
     }
-    //如果要转换的字符串不是从首字母开始，但是到最后一个字符为止
+    
     else if ($start>1&&$end==size($word))
     {
         string $otherWord = `substring $word 1 ($start-1)`;
         return ($otherWord + $toWord);
     }
-    //如果要转换的字符位于整个字符串中间
     else if ($start>1&&$end!=size($word))
     {
         string $frontWord = `substring $word (1) ($start-1)`;
         string $backWord = `substring $word ($end+1) (size($word))`;
         return ($frontWord + $toWord + $backWord);
     }
-    //整个字符串都要转换
+
     else
     {
         return $toWord;
@@ -404,7 +395,7 @@ global proc intersectLineFont(string $list)
     }
 }
 
-//initialize的tagList和pathList的顺序搞反了。。。
+
 global proc initializeList(string $tagList,string $pathList,string $filename,string $statusList)
 {
     string $elements[] = readFromPathFile($filename);
@@ -419,7 +410,6 @@ global proc initializeList(string $tagList,string $pathList,string $filename,str
     isExists($statusList,$tagList);
 }
 
-//判定目录是否存在
 global proc isExists(string $statusList,string $monitorList)
 {
     iconTextScrollList -e -ra -bgc 0.27 0.27 0.27 $statusList;
@@ -439,8 +429,6 @@ global proc isExists(string $statusList,string $monitorList)
     }
 }
 
-
-//保存文件并提示是否覆盖
 global proc saveFile(string $tagList,string $pathList,string $filename)
 {
     string $pathListItem[] = `textScrollList -q -ai $pathList`;
@@ -453,7 +441,7 @@ global proc saveFile(string $tagList,string $pathList,string $filename)
     }
     if(`filetest -w $filename`)
     {
-        if(`confirmDialog -t "覆盖文件" -b "Yes" -b "No" -db "Yes" -cb "No" -m "文件已存在，要覆盖么？" -ds "No"` == "Yes")
+        if(`confirmDialog -t "闂備礁鎼€氱兘宕规导鏉戠畾濞达絿鍎ら崗婊勩亜閺冣偓椤戞瑩宕ラ敓锟�" -b "Yes" -b "No" -db "Yes" -cb "No" -m "闂備礁鎼€氱兘宕规导鏉戠畾濞达絿鍎ら崯娲煕閳╁啰鎳勭痪鎾呮嫹" -ds "No"` == "Yes")
         {
             writeToPathFile($tempList,$filename);
         }
@@ -467,8 +455,6 @@ global proc saveFile(string $tagList,string $pathList,string $filename)
     }
 }
 
-
-//获取文件完整路径名
 global proc string filename(string $filenameField)
 {
     global string $pathFileExtension,$appDir,$filename;
@@ -478,8 +464,6 @@ global proc string filename(string $filenameField)
     return ($appDir + $filename + $pathFileExtension);
 }
 
-
-//锁定列表多选模式
 global proc listLockMultiSelect(string $targetListA,string $targetListB,string $checkBox)
 {
     if(`checkBox -q -v $checkBox`!=1)
@@ -494,9 +478,6 @@ global proc listLockMultiSelect(string $targetListA,string $targetListB,string $
     }
 }
 
-
-
-//添加预设内部路径变量
 global proc addInternalVarPath(string $pathList,string $tagList,int $internalVar)
 {
 
@@ -508,14 +489,14 @@ global proc addInternalVarPath(string $pathList,string $tagList,int $internalVar
         case 0:
         {
             $tempPath = `internalVar -uad`;
-            $tag = "Maya默认目录";
+            $tag = "Maya濠殿喗甯楃粙鎺撶仚濡炪倖鎹侀褔顢欒箛娑樜ㄧ憸澶愬蓟閵堝鐓熼柍鍝勶工閺嬫稓绱撳蹇斿";
             addPathString($tagList,$pathList,$tempPath,$tag,2);
             break;
         }
         case 1:
         {
             $tempPath = `internalVar -utd`;
-            $tag = "Maya临时目录";
+            $tag = "Maya濠殿喗甯楃粙鎺撶仚濡炪倖鎸剧划顖滅矙婢跺备鍋撳☉娅虫垿藝瑜旈弻锝夊煛婵犲倹鐏堢紓鍌氱▌閹凤拷";
             addPathString($tagList,$pathList,$tempPath,$tag,2);
             break;
         }
@@ -527,7 +508,7 @@ global proc addInternalVarPath(string $pathList,string $tagList,int $internalVar
         }
         case 3:
         {
-            addPresetPath($tagList,$pathList,addTagToArray(getProjectPathFolder("J:/JXB/")),2);  //注意这里必须用"/"且最后一个字符也要是"/"
+            addPresetPath($tagList,$pathList,addTagToArray(getProjectPathFolder("J:/JXB/")),2);  //婵犵數鍋涢ˇ顓㈠礉閹达箑鏋侀柟鎹愵嚙濡﹢鏌曢崼婵囶棞妞ゅ繐鐖煎铏规崉閵娿儲鐎鹃梺鍝勵儏椤兘鐛箛娑欏€婚柤鎭掑劜濞呫垽姊洪崫鍕偓鍫曞磹閺嶎偀鍋撳顒傜Ш闁哄被鍔戦幃銏ゅ川婵犲嫪绱曢梻浣哥秺椤ユ捇宕楀鈧顐﹀箻鐠囧弶顥濋梺闈涚墕濡顢旈崼鏇熲拺閻犳亽鍔屽▍鎰版煙閸戙倖瀚�"/"闂傚倷娴囧▔鏇㈠窗閹版澘鍑犲┑鐘宠壘缁狀垶鏌ｉ幋锝呅撻柡鍛倐閺岋繝宕掑Ο琛″亾閺嶎偀鍋撳顒傜Ш闁哄被鍔戦幃銏㈢矙鐠恒劍鐎┑鐐存綑閸氬鎮烽敂閿亾濮橆剛绉洪柡灞诲姂閹垽宕ㄦ繝鍕磿闂備胶鎳撻崲鏌ュ床閹绘帩鐒介柛鎰靛枟閻撱儵鏌ｉ弮鍋冲綊鎮块崱娑欑厵妞ゆ牭绲块崢娑樏瑰⿰鍛幋妤犵偛绻橀幃婊堟嚍閵夛附顏熼梻浣芥硶閸ｏ箓骞忛敓锟�??"/"
         }
         default:
             break;
@@ -537,19 +518,17 @@ global proc addInternalVarPath(string $pathList,string $tagList,int $internalVar
 
 }
 
-//给按钮加目录项
 global proc buttonPopMenu(string $button,string $pathList,string $tagList)
 {
     global string $pathIconList,$pathTagList;
     popupMenu -p $button;
-        menuItem -l "Maya默认目录" -c "addInternalVarPath($pathIconList,$pathTagList,0)";
-        menuItem -l "Maya临时目录" -c "addInternalVarPath($pathIconList,$pathTagList,1)";
-        menuItem -l "Maya工程目录" -c "addInternalVarPath($pathIconList,$pathTagList,2)";
+        menuItem -l "Maya濠殿喗甯楃粙鎺撶仚濡炪倖鎹侀褔顢欒箛娑樜ㄧ憸澶愬蓟閵堝鐓熼柍鍝勶工閺嬫稓绱撳蹇斿" -c "addInternalVarPath($pathIconList,$pathTagList,0)";
+        menuItem -l "Maya濠殿喗甯楃粙鎺撶仚濡炪倖鎸剧划顖滅矙婢跺备鍋撳☉娅虫垿藝瑜旈弻锝夊煛婵犲倹鐏堢紓鍌氱▌閹凤拷" -c "addInternalVarPath($pathIconList,$pathTagList,1)";
+        menuItem -l "Maya闂傚倷娴囧▔鏇㈠窗閹版澘鍑犲┑鐘宠壘缁狀垶鏌ｉ幋锝呅撻柡鍛倐閺岋繝宕掑Ο琛″亾閺嶎偀鍋撳顒傜Ш闁诡垰瀚伴、娆撴嚃閳哄唭锟�" -c "addInternalVarPath($pathIconList,$pathTagList,2)";
         menuItem -l "J:/JXB/" -c "addInternalVarPath($pathIconList,$pathTagList,3)";
 }
 
 
-//主程序
 global proc pathSelectorManager()
  {
     global string $file;
@@ -564,9 +543,9 @@ global proc pathSelectorManager()
     //button -l "Open Multi Path" -bgc 0.2 0.4 0.6 -c "openPath($pathIconList,1)";
     rowLayout -nc 6;
     button -l "Add User Path" -w 100 -c "addPath($pathIconList,$pathTagList,$addPathTextField,$addTagTextField)" -bgc 0.0 0.25 0.45;
-    $button1 = `button -ann "点击添加工程目录,右键添加额外的目录" -l "Project Path" -w 100 -c "addPresetPath($pathTagList,$pathIconList,addTagToArray(getProjectPathFolder(`workspace -q -rd`)),2)" -bgc 0.1 0.35 0.55`;
+    $button1 = `button -l "Project Path" -w 100 -c "addPresetPath($pathTagList,$pathIconList,addTagToArray(getProjectPathFolder(`workspace -q -rd`)),2)" -bgc 0.1 0.35 0.55`;
     buttonPopMenu($button1,$pathIconList,$pathTagList);
-    button -ann "保存到文件,修改了列表请记得保存,如果要在别的电脑用,记得备份文件“userPath.path”到对应的位置" -l "Save to File" -w 100 -c "saveFile($pathTagList,$pathIconList,filename($filePath))" -bgc 0.2 0.45 0.65;
+    button -l "Save to File" -w 100 -c "saveFile($pathTagList,$pathIconList,filename($filePath))" -bgc 0.2 0.45 0.65;
     text "Filename:";
     $filePath = `textField -w 75 -tx $file -en off`;
     //checkBox -l "Modify Lock" -v 1 -onc "textField -e -en off $filePath" -ofc "textField -e -en on $filePath";
@@ -574,11 +553,11 @@ global proc pathSelectorManager()
     setParent..;
 
     rowLayout -nc 5;
-    $addTagTextField = `textField -ann "这里添加  Tag:标签 按小键盘回车确认" -w 121 -ec "addPath($pathIconList,$pathTagList,$addPathTextField,$addTagTextField)"`;
+    $addTagTextField = `textField -w 121 -ec "addPath($pathIconList,$pathTagList,$addPathTextField,$addTagTextField)"`;
     separator -w 1;
     checkBox -w 13;
     separator -w 1;
-    $addPathTextField = `textField -ann "这里添加  Path:路径 按小键盘回车确认" -w 801 -ec "addPath($pathIconList,$pathTagList,$addPathTextField,$addTagTextField)"`;
+    $addPathTextField = `textField -w 801 -ec "addPath($pathIconList,$pathTagList,$addPathTextField,$addTagTextField)"`;
     setParent..;
 
     rowLayout -nc 3;

@@ -28,7 +28,7 @@ global proc getRelativeObjs()
     }
     else
     {
-        warning "要选并且只能选一个SG节点";
+        warning "瑕侀�夊苟涓斿彧鑳介�変竴涓猄G鑺傜偣";
         $relativeObjs = {};
     }
 }
@@ -50,7 +50,7 @@ global proc setSG2Obj()
     }
     else
     {
-        warning "先点第一个按钮保存相关的mesh信息";
+        warning "鍏堢偣绗竴涓寜閽繚瀛樼浉鍏崇殑mesh淇℃伅";
     }
     if (`window -ex logTip`)
     {
@@ -59,10 +59,10 @@ global proc setSG2Obj()
 }
 
 
-//获取选择的SG节点
-//找到SG节点对应的Mesh并存在列表中
-//手动切换到其他层
-//点击关联，将SG节点赋予列表中的Mesh
+//鑾峰彇閫夋嫨鐨凷G鑺傜偣
+//鎵惧埌SG鑺傜偣瀵瑰簲鐨凪esh骞跺瓨鍦ㄥ垪琛ㄤ腑
+//鎵嬪姩鍒囨崲鍒板叾浠栧眰
+//鐐瑰嚮鍏宠仈锛屽皢SG鑺傜偣璧嬩簣鍒楄〃涓殑Mesh
 
 
 global proc sgManager()
@@ -83,7 +83,10 @@ global proc sgManager()
     button -l "Assign SG " -w 120 -h 40 -bgc 0.125 0.1 0.5 -c "setSG2Obj()";
     separator -h 2;
     
+	if(`window -ex sgLayerManager`)
+	{
     windowPref -r sgLayerManager;
+	}
     showWindow sgLayerManager;
 }
 

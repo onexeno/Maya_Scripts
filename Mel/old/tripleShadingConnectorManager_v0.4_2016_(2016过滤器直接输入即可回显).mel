@@ -1,0 +1,576 @@
+
+//获取链接到inShape上的上游shape节点
+global proc string connectionShape(string $tripeNode,int $index)
+{
+    string $srcInst = `connectionInfo -sfd ( $tripeNode + ( ".input[" + $index + "].inShape" ))`;
+    string $temps[] = {};
+    tokenize $srcInst "." $temps;
+    return $temps[0];
+}
+
+//列出所有链接的shape
+global proc string [] tripleList(string $tripleNode)
+{
+    int $tripleCounts[] = `getAttr -mi ( $tripleNode + ".input" )`;//这个input可以间隔存在，比如没有3也可以有5，6
+    string $tripleList[] = {};
+    for($index in $tripleCounts)
+    {
+        $tripleList[size($tripleList)] = connectionShape($tripleNode,$index);
+        //$tripleList[size($tripleList)] = connectionInfo($tripleNode,$i);
+    }
+    return $tripleList;
+}
+
+//查看是否shape已经链接倒triple
+global proc int isConnectToTriple(string $obj,string $tripleNode)
+{
+    return (stringArrayContains($obj,tripleList($tripleNode)));
+}
+
+global proc connectObjToTriple(string $obj,string $tripleNode,int $index,int $findNull)
+{
+    global string $hintText;
+    if($findNull>0)
+    {
+        if(`connectionInfo -id ($tripleNode+".input["+ $index +"].inShape")`)
+        {
+            $index += 1;
+            connectObjToTriple($obj,$tripleNode,$index,1);
+        }   //(自动填空)给新加的物体找一个空链接,使用了递归,要加载对象过多的话会比较卡,
+            //第一次添加可以用不递归,之后再修改就需要查空了。
+        else if (isConnectToTriple($obj,$tripleNode)==0)
+        {
+            catchQuiet(`connectAttr -f ( $obj + ".instObjGroups[0]" ) ( $tripleNode+".input[" + $index + "].inShape" )`);
+            textField -e -tx ("Connect \"" + $obj + ".instObjGroups[0]\" to \"" + $tripleNode + ".input[" + $index  +"].inShape\"") $hintText;
+            //链接物体的instObjGroup到tripleShadingSwitch的input.inShape
+        }
+    }
+    else
+    {
+        if(isConnectToTriple($obj,$tripleNode)==0)
+        {
+            catchQuiet(`connectAttr -f ( $obj + ".instObjGroups[0]" ) ( $tripleNode+".input[" + $index + "].inShape" )`);
+            textField -e -tx ("Connect \"" + $obj + ".instObjGroups[0]\" to \"" + $tripleNode + ".input[" + $index  +"].inShape\"") $hintText;
+            //链接物体的instObjGroup到tripleShadingSwitch的input.inShape
+        }
+    }
+}
+
+//查找物体在TripleNode中对应的index
+global proc int findIndexInTriple(string $obj,string $tripleNode)
+{
+    if(isConnectToTriple($obj,$tripleNode)>0)
+    {
+        string $listConnections[] = `connectionInfo -dfs ($obj + ".instObjGroups[0]")`;  //获取所选物体的instObjGroups[0]所连接的属性
+        string $temp[] = {};
+        for($connection in $listConnections)
+        {
+            int $findTriple = `gmatch $connection ($tripleNode+"*")`;  //匹配输入的TripleNode
+            if($findTriple>0)
+            {
+                tokenize $connection ".[]" $temp;  //析出字符串的数字
+            }
+        }
+        return ($temp[2]); //返回字符串中间的数字
+    }
+    else
+    {
+        return -1;  //没有则返回-1,避免返回0
+    }
+}
+
+//打断选择的物体与Triple的连接
+global proc disconnectShape(string $obj,string $tripleNode)
+{
+    int $objIndex = findIndexInTriple($obj,$tripleNode);
+    if($objIndex>=0)
+    {
+        disconnectAttr ($obj+".instObjGroups[0]") ($tripleNode+".input["+$objIndex+"].inShape");
+        string $getMat = `connectionInfo -sfd ($tripleNode+".input["+$objIndex+"].inTriple")`;
+        if(size($getMat)>0)
+        {
+            disconnectAttr ($getMat) ($tripleNode+".input[" + $objIndex+ "].inTriple");
+        }
+    }
+}
+//连接材质球到所选择的物体的后面
+global proc connectMat(string $obj,string $tripleNode,string $mat)
+{
+    global string $hintText;
+    int $objIndex = findIndexInTriple($obj,$tripleNode); //查找输入物体的index
+    if($objIndex >= 0)
+    {
+        string $tripleConnection = `connectionInfo -sfd ($tripleNode + ".input["+$objIndex+"].inTriple")`;
+        if(size($tripleConnection) == 0)  //查询是否已经有材质连接到对应的物体上
+        {
+            if(`attributeExists "outColor" $mat`)
+            {
+                connectAttr -f ($mat+".outColor") ($tripleNode+".input["+$objIndex+"].inTriple");
+                textField -e -tx ("Connect\" " + $mat+".outColor\" to \"" + $tripleNode+".input[" + $objIndex +"].inTriple.\"") $hintText;
+            }
+            else
+            {
+                warning("请检查 \"" + $mat + "\"是否有\"outColor\"属性\n");
+                textField -e -tx ("请检查 \"" + $mat + "\"是否有\"outColor\"属性") $hintText;
+            }
+        }
+        else
+        {
+            disconnectAttr ($tripleConnection) ($tripleNode+".input["+$objIndex+"].inTriple");
+            if(`attributeExists "outColor" $mat`)
+            {
+                connectAttr -f ($mat+".outColor") ($tripleNode+".input["+$objIndex+"].inTriple");
+                textField -e -tx ("Connect\" " + $mat+".outColor\" to \"" + $tripleNode+".input[" + $objIndex +"].inTriple.\"") $hintText;
+            }
+            else
+            {
+                warning("请检查 \"" + $mat + "\"是否有\"outColor\"属性\n");
+                textField -e -tx ("请检查 \"" + $mat + "\"是否有\"outColor\"属性") $hintText;
+            }
+        }
+    }
+    else
+    {
+        //如果输入的物体没有连接到TripleNode则警告:
+        warning ("请检查 \""+$obj+" \"是否连接到 \""+$tripleNode+" \";\n");
+        textField -e -tx ("请检查 \""+$obj+" \"是否连接到 \""+$tripleNode+" \";") $hintText;
+    }
+}
+
+//connectMat("pCubeShape16","nihaoTripleSwitch","lambert1");
+//attributeExists "outColor" "surfaceShader1";
+//删除所选的triple节点
+global proc delTripleNode()
+{
+    global string $tripleScrollList;
+    string $nodeName[] = `textScrollList -q -si $tripleScrollList`;
+    lockNode -l off $nodeName[0];
+    delete $nodeName[0];
+    listNode("triple",0);
+}
+
+global proc addSelToTriple()
+{
+    global string $objScrollList, $tripleScrollList, $matScrollList;
+    string $objList[] = `ls -sl -g -dag -ni`;
+    string $tripleNode[] = `textScrollList -q -si $tripleScrollList`;
+    for($i=0;$i<size($objList);$i++)
+    {
+        connectObjToTriple($objList[$i],$tripleNode[0],$i,1);
+    }
+}
+
+global proc disconnectSelFromTriple()
+{
+    global string $objScrollList, $tripleScrollList, $matScrollList;
+    string $objList[] = `ls -sl -g -dag -ni`;
+    string $tripleNode[] = `textScrollList -q -si $tripleScrollList`;
+    for($i=0;$i<size($objList);$i++)
+    {
+        disconnectShape($objList[$i],$tripleNode[0]);
+    }
+}
+
+global proc addMatToSel()
+{
+    global string $objScrollList, $tripleScrollList, $matScrollList;
+    string $objList[] = `ls -sl -g -dag -ni`;
+	if(size($objList) == 0)
+	{
+		$objList = `textScrollList -q -si $objScrollList`;
+	}
+    string $tripleNode[] = `textScrollList -q -si $tripleScrollList`;
+    string $mat[] = `textScrollList -q -si $matScrollList`;
+    for($i=0;$i<size($objList);$i++)
+    {
+        connectMat($objList[$i],$tripleNode[0],$mat[0]);
+    }
+}
+
+//创建AOV，必须先加载mtoa并且保证当前渲染层为arnold
+global proc createAOV()
+{
+    global string $tripleScrollList;
+    global string $prefixName;
+    int $type = aovType();
+    $aovName = `textFieldGrp -q -tx $prefixName`;   //获取手动输入的前缀
+    if(`pluginInfo -q -l "mtoa"`)
+    {
+        if(!`objExists ("aiAOV_"+$aovName)`)
+        {
+            python("from mtoa import aovs\n"+
+                    "aovs.AOVInterface().addAOV(\'"+$aovName+"',aovType="+$type+")");
+
+            string $tripleNode = `shadingNode -au -n ($aovName+"_TripleSwitch") "tripleShadingSwitch"`;      //以aov的名字创建triple
+            connectAttr -f ($tripleNode+".output") ("aiAOV_"+$aovName+".defaultValue");   //连接Triple到AOV
+            setAttr ($tripleNode+".default") -type double3 0 0 0;   //设置默认色为黑色
+            listNode("triple",0);
+            textScrollList -e -si ($aovName+"_TripleSwitch") $tripleScrollList;
+        }
+        else
+        {
+            warning ("已经有 \"" + $aovName + "\"这个通道了");
+        }
+    }
+    else
+    {
+        warning("请加载\"mtoa!\n");
+    }
+}
+
+//将选择的物体列出在列表中
+global proc listNode(string $listType,int $matSwitch)
+{
+    global string $objScrollList,$tripleScrollList,$matScrollList;
+    //global string $shapeNodes[],$tripleNodes[],$matNodes[];
+    switch($listType)
+    {
+        case "shape":   //列出所选的所有网格物体
+        {
+            global string $shapeNodes[];
+            string $objList[] = `ls -sl -g -dag -ni`;
+            textScrollList -e -ra $objScrollList;
+            for($obj in $objList)
+            {
+                textScrollList -e -a $obj $objScrollList;
+            }
+            string $shapeNodes[] = $objList;
+            break;
+        }
+        case "mat":   //列出场景中所有的材质和File节点
+        {
+            //string $matList[] = `ls -sl -mat`;
+            global string $matNodes[];
+            string $temps[] = {};
+            if($matSwitch == 1)
+            {
+                string $matList[] = `ls -mat`;
+                string $fileList[] = `ls -type file`;
+				string $rampList[] = `ls -type ramp`;
+                $temps = stringArrayCatenate($matList,$fileList);
+				$temps = stringArrayCatenate($temps,$rampList);
+            }
+            else
+            {
+                string $matList[] = `ls -sl -mat`;
+                string $fileList[] = `ls -sl -type file`;
+				string $rampList[] = `ls -sl -type ramp`;
+                $temps = stringArrayCatenate($matList,$fileList);
+				$temps = stringArrayCatenate($temps,$rampList);
+            }
+            textScrollList -e -ra $matScrollList;
+
+            for($mat in $temps)
+            {
+                textScrollList -e -a $mat $matScrollList;
+            }
+
+            string $matNodes[] = $temps;
+            break;
+        }
+        case "triple":   //如果输入为Triple的话则列出所有场景中的TripleShadingSwitch节点
+        {
+            global string $tripleNodes[];
+            string $tripleList[] = `ls -typ "tripleShadingSwitch"`;
+            textScrollList -e -ra $tripleScrollList;
+            for($triple in $tripleList)
+            {
+                textScrollList -e -a $triple -sii 1 $tripleScrollList;
+            }
+            string $tripleNodes[] = $tripleList;
+            break;
+        }
+        default :
+            print ("b(￣▽￣)d");
+            break;
+    }
+}
+
+//双击列表选择
+global proc doubleClickInListCmd(string $list)
+{
+    global string $objScrollList,$tripleScrollList,$matScrollList;
+    switch($list)
+    {
+        case "shape":
+        {
+            string $selItem[] = `textScrollList -q -si $objScrollList`;
+            select -r $selItem;
+            //ShowAttributeEditorOrChannelBox;
+            break;
+        }
+        case "triple":
+        {
+            string $selItem[] = `textScrollList -q -si $tripleScrollList`;
+            select -r $selItem;
+            textScrollList -e -da $objScrollList;
+            ShowAttributeEditorOrChannelBox;
+            break;
+        }
+        case "mat":
+        {
+            string $selItem[] = `textScrollList -q -si $matScrollList`;
+            select -r $selItem;
+            ShowAttributeEditorOrChannelBox;  //打开属性编辑器
+            break;
+        }
+        default:
+            print ("b(￣▽￣)d");
+            break;
+    }
+}
+
+//选择AOV类型
+global proc int aovType()
+{
+    global string $typeMenu;
+    string $aovTypeLists = `optionMenu -q -v $typeMenu`;
+    int $aovTypeIndex = 5;
+
+    switch ($aovTypeLists)
+    {
+        case "int":
+            $aovTypeIndex = 1;
+            break;
+        case "bool":
+            $aovTypeIndex = 3;
+            break;
+        case "float":
+            $aovTypeIndex = 4;
+            break;
+        case "rgb":
+            $aovTypeIndex = 5;
+            break;
+        case "rgba":
+            $aovTypeIndex = 6;
+            break;
+        case "vector":
+            $aovTypeIndex = 7;
+            break;
+        case "point":
+            $aovTypeIndex = 8;
+            break;
+        case "point2":
+            $aovTypeIndex = 9;
+            break;
+        case "pointer":
+            $aovTypeIndex = 11;
+            break;
+        default:
+            $aovTypeIndex = 5;
+            break;
+    }
+    return $aovTypeIndex;
+}
+
+
+//增加过滤器
+global proc filterText(string $textField,string $scrollList,string $nodes[])
+{
+    //global string $tf1 , $tsl1;
+    //global string $matNodes[];
+    string $text = `textField -q -tx $textField`;
+    //string $temps[] = `textScrollList -q -ai $tsl1`;
+    //string $tempPre[] = $temps;
+    string $temps[] = $nodes;
+
+    string $nowTemp[];
+    if(size($text)!=0)    //找全称
+    {
+        for($file in $temps)
+        {
+            if(`gmatch $file $text`)
+            {
+                $nowTemp[size($nowTemp)]=$file;
+            }
+        }
+
+        if(size($nowTemp)==0)  //如果找不到全称，就找近似
+        {
+            for($file in $temps)
+            {
+                if(`gmatch $file ($text+"*")`)
+                {
+                    $nowTemp[size($nowTemp)]=$file;
+                }
+            }
+        }
+
+        textScrollList -e -ra $scrollList;
+        for($now in $nowTemp)
+        {
+            textScrollList -e -a $now $scrollList;
+        }
+    }
+    else if (size($text)==0)   //如果输入框为0则返回全节点列表
+    {
+        textScrollList -e -ra $scrollList;
+        for($file in $temps)
+        {
+            textScrollList -e -a $file $scrollList;
+        }
+    }
+
+}
+
+//开关过滤器
+global proc switchFilter(string $filter)
+{
+    if(`textField -q -en $filter`)
+    {
+        textField -e -en off $filter;
+    }
+    else
+    {
+        textField -e -en on $filter;
+    }
+}
+
+global proc presetShader()
+{
+    if(!`objExists "aiMaskMaterial_Red"`)
+    {
+        string $maskShaderRed = `shadingNode -as surfaceShader -n "aiMaskMaterial_Red"`;
+        setAttr ($maskShaderRed+".outColor") -type "double3" 1 0 0;
+    }
+    if(!`objExists "aiMaskMaterial_Green"`)
+    {
+        string $maskShaderGreen = `shadingNode -as surfaceShader -n "aiMaskMaterial_Green"`;
+        setAttr ($maskShaderGreen+".outColor") -type "double3" 0 1 0;    
+    }
+    if(!`objExists "aiMaskMaterial_Blue"`)
+    {
+        string $maskShaderBlue = `shadingNode -as surfaceShader -n "aiMaskMaterial_Blue"`;
+        setAttr ($maskShaderBlue+".outColor") -type "double3" 0 0 1;
+    }
+    if(!`objExists "aiMaskMaterial_Yellow"`)
+    {
+        string $maskShaderYellow = `shadingNode -as surfaceShader -n "aiMaskMaterial_Yellow"`;
+        setAttr ($maskShaderYellow+".outColor") -type "double3" 1 1 0;
+    }
+    if(!`objExists "aiMaskMaterial_Cyan"`)
+    {
+        string $maskShaderCyan = `shadingNode -as surfaceShader -n "aiMaskMaterial_Cyan"`;
+        setAttr ($maskShaderCyan+".outColor") -type "double3" 0 1 1;
+    }
+    if(!`objExists "aiMaskMaterial_Purple"`)
+    {
+        string $maskShaderPurple = `shadingNode -as surfaceShader -n "aiMaskMaterial_Purple"`;
+        setAttr ($maskShaderPurple+".outColor") -type "double3" 1 0 1;
+    }
+}
+
+
+global proc deleteListItemSync(string $list1)
+{
+    int $indexs[] = `textScrollList -q -sii $list1`;
+    catchQuiet(`textScrollList -e -rii $indexs[0] $list1`);
+    //catchQuiet(`textScrollList -e -rii $indexs[0] $list2`);    
+    /*if(size($indexs)>1)
+    {
+
+        textScrollList -e -rii $indexs[0] $list1;
+        textScrollList -e -rii $indexs[0] $list2;
+            
+    }
+    else
+    {
+        textScrollList -e -rii $indexs[0] $list1;
+        textScrollList -e -rii $indexs[0] $list2;
+    }*/
+}
+
+
+
+
+global proc tripleShadingConnectorManager()
+{
+    global string $objScrollList, $tripleScrollList, $matScrollList,$prefixName,$typeMenu,$hintText,$tfilter1,$tfilter2,$tfilter3,$filterB1,$filterB2,$filterB3;
+    global string $shapeNodes[], $tripleNodes[],$matNode[];
+
+    if(`window -ex tripleShadingConnector`)
+    {
+        deleteUI tripleShadingConnector;
+    }
+
+
+    window -rtf 0 -s 1 -t "TripleShadingConnector_v0.4" -w 778 -h 300 tripleShadingConnector;
+    
+    scrollLayout -h 150;   //-h为scrollLayout的最小缩放值，也就是scrollLayout不能被拉伸到小于这个值
+    
+    string $row1 = `rowLayout -h 30 -nc 5`; //设置首行的Layout
+    
+    $prefixName = `textFieldGrp  -l "AOV Name:" -w 400`;   
+    rowLayout -e -cat 1 "left" -75
+                 -cat 2 "left" 0
+                 -cat 3 "left" 5 $row1;
+    $typeMenu = `optionMenu -l "AOV Type: "`;
+        menuItem -label "int";
+        menuItem -label "bool";
+        menuItem -label "float";
+        menuItem -label "rgb";
+        menuItem -label "rgba";
+        menuItem -label "vector";
+        menuItem -label "point";
+        menuItem -label "point2";
+        menuItem -label "pointer";
+        optionMenu -e -sl 4 $typeMenu;
+        button -l "Add AOV" -c "createAOV()" -w 120 -h 20 -bgc 0.1 0.2 0.3;
+        button -l "Mask Material" -c "presetShader()" -w 120 -h 20 -bgc 0.3 0.2 0.1; 
+    setParent..;
+    string $hintText = `textField -w 778 -en off -nbg on`;
+    rowLayout -nc 4;
+        rowLayout -nc 2 -w 258;
+        string $filterB1 = `button -w 20 -h 20 -l ">>" -c "switchFilter($tfilter1)"`;
+        string $tfilter1 = `textField -en on -w 230 -vcc "filterText($tfilter1,$objScrollList,$shapeNodes)"`;
+        setParent..;
+        rowLayout -nc 2 -w 258;
+        string $filterB2 = `button -w 20 -h 20 -l ">>" -c "switchFilter($tfilter2)"`;
+        string $tfilter2 = `textField -en on -w 230 -vcc "filterText($tfilter2,$tripleScrollList,$tripleNodes)"`;
+        setParent..;
+        rowLayout -nc 2 -w 258;
+        string $filterB3 = `button -w 20 -h 20 -l ">>" -c "switchFilter($tfilter3)"`;
+        string $tfilter3 = `textField -en on -w 230 -vcc "filterText($tfilter3,$matScrollList,$matNodes)"`;
+        setParent..;
+    setParent..;
+    //separator -en 0 -h 30 -w 779;
+
+    rowLayout -nc 3;
+        columnLayout;
+            rowLayout -nc 3;
+                button -ann "在列表中选中要打断关联的物体，选中Triple" -l "Break" -c "disconnectSelFromTriple()" -w 32 -h 36 -bgc 0.25 0.25 0.25;
+                button -ann "列出所选的shape物体" -l "List Shape" -c "listNode(\"shape\",0)" -w 94 -h 36 -bgc 0.3 0.4 0.4;
+                button -ann "在Triple列表中选中triple节点" -l "Obj 2 Triple>>>" -c "addSelToTriple()" -w 120 -h 36 -bgc 0.4 0.5 0.5;
+                setParent..;
+                separator -h 5;
+                $objScrollList = `textScrollList -ams on -sc "doubleClickInListCmd(\"shape\")" -h 1000 -dkc "deleteListItemSync($objScrollList)"`;
+            setParent..;
+        columnLayout;
+            rowLayout -nc 2;
+                button -ann "列出场景中的Triple" -l "List Triple" -c "listNode(\"triple\",0)" -w 164 -h 36 -bgc 0.3 0.3 0.5;
+                button -ann "在列表中选中要删除的Triple节点" -l "Del Triple" -c "delTripleNode()" -w 88 -h 36 -bgc 0.27 0.27 0.27;
+                setParent..;
+                separator -h 5;
+                $tripleScrollList = `textScrollList -ams off -dcc "doubleClickInListCmd(\"triple\")" -h 1000 -dkc "deleteListItemSync($tripleScrollList)"`;
+            setParent..;
+        columnLayout;
+            rowLayout -nc 3;
+                button -ann "选择要关联的物体,然后选择Triple,最后选择要关联的材质球" -l "<<<Mat 2 Triple" -c "addMatToSel()" -w 126 -h 36 -bgc 0.3 0.2 0.4;
+                button -ann "列出所有的材质球" -l "All Mat" -c "listNode(\"mat\",1)" -w 94 -h 36 -bgc 0.4 0.2 0.4;
+                button -ann "选择要列出在列表中的材质球" -l "Sel" -c "listNode(\"mat\",0)" -w 32 -h 36 -bgc 0.27 0.27 0.27;
+                setParent..;
+                separator -h 5;
+
+                $matScrollList = `textScrollList -ams off -dcc "doubleClickInListCmd(\"mat\")" -h 1000 -dkc "deleteListItemSync($matScrollList)"`;
+            setParent..;
+	
+	/*if(`window -ex tripleShadingConnector`)
+	{
+		windowPref -r tripleShadingConnector;
+	}*/
+
+    showWindow tripleShadingConnector;
+}
+
+tripleShadingConnectorManager;
+

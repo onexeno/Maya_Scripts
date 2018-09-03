@@ -1,6 +1,5 @@
-
+//YM_Cam2Toonline - 摄像机线框关联
 global string $textList1,$textList2;
-
 
 global proc createMatrix(string $cam)
 {
@@ -16,15 +15,14 @@ global proc createMatrix(string $cam)
         string $decomposeMatrix = `createNode -n ($cam+"Matrix") "decomposeMatrix"`;
         connectAttr -f ($cam+".worldMatrix") ($decomposeMatrix+".inputMatrix");
     }
-    
-}
 
+}
 
 global proc selCam()
 {
-    global string $textList1,$textList2; 
+    global string $textList1,$textList2;
     string $list[] = `textScrollList -q -ai $textList2`;
-    string $cams[] = `textScrollList -q -si $textList1`; 
+    string $cams[] = `textScrollList -q -si $textList1`;
     createMatrix($cams[0]);
     for($i=0;$i<size($list);$i++)
     {
@@ -51,68 +49,64 @@ global proc selToon(int $switch)
     }
 }
 
-global proc selObj()
+global proc selObjList()
 {
     global string $textList3;
     string $list[] = `textScrollList -q -si $textList3`;
     select -r $list;
 }
 
-
-            
 global proc cam2Toonline()
 {
     global string $textList1,$textList2,$textList3;
-	
-	if(!`pluginInfo -q -l "matrixNodes"`)
-	{
-		loadPlugin -qt "matrixNodes";
-	}
-	
+
+    if(!`pluginInfo -q -l "matrixNodes"`)
+    {
+        loadPlugin -qt "matrixNodes";
+    }
+
     if(`window -ex camToonlineWindow`)
     {
         deleteUI camToonlineWindow;
     }
-    
+
     window -t "SelCamConnectionToToonline" -w 200 -h 200 camToonlineWindow;
     paneLayout -h 200 -w 600;
     rowLayout -nc 3;
-    frameLayout -l "Cameras" -ann "双击摄像机关联到所有的线框";
+    frameLayout -l "Cameras";
         $textList1 = `textScrollList -w 200 -h 1000 -dcc "selCam()"`;
     setParent..;
-    frameLayout -l "pfxToonLines" -ann "单击选择，双击打开属性面板";     
+    frameLayout -l "pfxToonLines";     
         $textList2 = `textScrollList -w 200 -h 1000 -sc "selToon(0)" -dcc "selToon(1)"`;
         popupMenu -p $textList2;
             menuItem -l "Attach Sel Obj to this toonline" -c "attachToonLines()";
     setParent..;
     frameLayout -l "Relative Shapes";
-        $textList3 = `textScrollList -w 200 -h 1000 -dcc "selObj()" -dkc "menuBreakConnection()"`;
+        $textList3 = `textScrollList -w 200 -h 1000 -dcc "selObjList()" -dkc "menuBreakConnection()"`;
         popupMenu -p $textList3;
             menuItem -l "Remove Toonlines on this shape" -c "menuBreakConnection()";
-            //menuItem -l "W";
         setParent..;
         setParent..;
     setParent..;
-	if(`window -ex camToonlineWindow`)
-	{
-		catchQuiet(`windowPref -r camToonlineWindow`);
-	}
+    if(`window -ex camToonlineWindow`)
+    {
+        catchQuiet(`windowPref -r camToonlineWindow`);
+    }
     showWindow camToonlineWindow;
-    
-    
-    string $cams[] = `listCameras -p`;
+
+
+    string $cams[] = `listCameras`;
     for($cam in $cams)
     {
         textScrollList -e -a $cam $textList1;
     }
-    
+
     string $toons[] = `ls -typ "pfxToon"`;
     for($toon in $toons)
     {
         textScrollList -e -a $toon $textList2;
     }
 }
-
 
 global proc toonForMesh()
 {
@@ -127,16 +121,15 @@ global proc toonForMesh()
     }
 }
 
-
 global proc attachToonLines()
 {
     global string $textList2,$textList3;
     string $selToonLines[] = `textScrollList -q -si $textList2`;
     string $list[] = `ls -sl -dag -ni -type "mesh"`;
     int $indexs[] = `getAttr -mi ($selToonLines[0]+".inputSurface")`;
-    
+
     int $nullIndex[] = rescue(size($list),$indexs);
-    
+
     for($i=0;$i<size($list);$i++)
     {
         connectAttr -f ($list[$i]+".outMesh") ($selToonLines[0]+".inputSurface["+$nullIndex[$i]+"].surface");
@@ -153,31 +146,27 @@ global proc int [] rescue(int $range,int $indexs[])
     }
     $temp = intArrayRemove($indexs,$temp);
     return $temp;
-	//生成一个新的数组(长度=想要的数组+已有数组)，然后从新数组剔除已有数组；
 }
-
-
 
 global proc menuBreakConnection()
 {
     global string $textList2,$textList3;
-    
+
     string $pfxToon[] = `textScrollList -q -si $textList2`;
-	string $shape[] = `textScrollList -q -si $textList3`;
+    string $shape[] = `textScrollList -q -si $textList3`;
     int $attrSize = `getAttr -s ($pfxToon[0]+".inputSurface")`;
     string $shapes[] = `listConnections -type "mesh" -sh on $pfxToon[0]`;
     string $shapeList[] = stringArrayRemoveDuplicates($shapes);
     int $index[] = `getAttr -mi ($pfxToon[0]+".inputSurface")`;
-    
+
     for($i in $index)
     {
         string $surfaceTemp = `connectionInfo -sfd ($pfxToon[0]+".inputSurface["+$i+"].surface")`;
         string $surfaceMatrix = `connectionInfo -sfd ($pfxToon[0]+".inputSurface["+$i+"].inputWorldMatrix")`;
-		string $buffer[];
-		tokenize($surfaceTemp,".",$buffer);
+        string $buffer[];
+        tokenize($surfaceTemp,".",$buffer);
         if($buffer[0]==$shape[0])
         {
-            //print $shapeList[0];
             disconnectAttr ($surfaceTemp) ($pfxToon[0]+".inputSurface["+$i+"].surface");
             disconnectAttr ($surfaceMatrix) ($pfxToon[0]+".inputSurface["+$i+"].inputWorldMatrix");
             catchQuiet(`textScrollList -e -ri $shape[0] $textList3`);
@@ -185,7 +174,5 @@ global proc menuBreakConnection()
     }
     select -cl;
 }
-
-
 
 cam2Toonline();

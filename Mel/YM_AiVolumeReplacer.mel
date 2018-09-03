@@ -1,0 +1,236 @@
+//YM_AiVolumeReplacer - 批量修改aiVolume节点
+
+global string $tsl3,$tsl1,$tsl2,$intSlider,$text;
+global string $lsType[];
+string $lsType[] = `ls -type aiVolume`;
+//string $lsUniqueType[] = stringArrayRemoveDuplicates($lsType);
+
+if(`window -ex aiStandPathChange`)
+    deleteUI aiStandPathChange;
+    
+window -t "aiVolumeCollectorReplacer" -w 500 -h 200 -sizeable 0 aiStandPathChange;
+columnLayout;
+    rowLayout -nc 4;
+    string $tsl1 = `textField -bgc 0.15 0.15 0.15 -w 351`;
+    shelfButton -h 25 -w 25 -i "droptext.xpm" -c "fileLoader()";
+    button -l "Replace"  -w 58 -c "replaceAiPath()";
+    button -l "List" -w 58 -c "attachNameToUI()";
+    setParent..;
+    rowLayout -nc 2 -ad1 1 -ad2 1 -w 500;
+        string $tsl3 = `textScrollList -en 1 -ebg 0 -ams 1 -dcc "selectAiStandByPath($lsType)" `;
+        string $tsl2 = `textScrollList -en 0 -ebg 0 -ams 1 -w 40`; 
+        setParent..;
+    //rowLayout -nc 4;
+    //string $intSlider = `intSliderGrp -field 1 -v 0 -min 0 -max 6 -dc "modeName()"`;
+    //string $text = `textField -bgc 0.27 0.27 0.27 -w 125`;
+    //modeName();
+    //button -l "set Sel Ass" -c "setSelMode()" -w 60;
+    //button -l "set All Ass" -c "setMode()" -w 60;
+    //setParent..;
+setParent..;
+    
+showWindow aiStandPathChange;
+
+global proc modeName()
+{
+    global string $intSlider,$text;
+    int $mode = `intSliderGrp -q -v $intSlider`;
+    switch($mode)
+    {
+    case 0:
+    {
+        textField -e -tx "BoundingBox" $text;
+        break;
+    }
+    case 1:
+    {
+        textField -e -tx "PerObjectBoundingBox" $text;
+        break;
+    }
+    case 2:
+    {    
+        textField -e -tx "Polywire" $text;
+        break;
+    }
+    case 3:
+    { 
+        textField -e -tx "Wireframe" $text;
+        break; 
+    }   
+    case 4:
+    {
+        textField -e -tx "PointCloud" $text;
+        break;
+    }
+    case 5:   
+    {   
+        textField -e -tx "ShadedPolywire" $text;
+        break; 
+    }
+    case 6:
+    {
+        textField -e -tx "Shaded" $text;
+        break;
+    }
+    default:
+    {
+        textField -e -tx "BoundingBox" $text;
+        break;
+    }
+    }
+}
+
+global proc fileLoader()
+{
+    global string $tsl3,$tsl1,$tsl2;
+    string $getNames[] = `fileDialog2 -fm 1 -cap "aiVolumePath" -ff "openVDB(*.vdb);;All File(*.*)"`;
+    //print $getNames[0];
+    if(size($getNames)==1)
+    {
+        textField -e -tx ($getNames[0]) $tsl1;
+    }
+}
+
+global proc string [] attachNameToUI()
+{
+    
+    global string $lsType[];
+    global string $tsl3,$tsl1,$tsl2;
+    string $paths[] = {};
+    string $lsType[] = `ls -type aiVolume`;
+    
+    for($aiVolume in $lsType)
+    {
+        string $aiPath = `getAttr ($aiVolume+".filename")`;
+        stringArrayInsertAtIndex(0,$paths,$aiPath);
+        //textScrollList -e -a $aiStand $tsl2;
+        //textScrollList -e -a $uniquePath $tsl3;
+    }
+    
+    string $uniquePaths[] = stringArrayRemoveDuplicates($paths);
+    
+    string $isExists[] = `textScrollList -q -ai $tsl3`;
+    if(size($isExists)>0)
+    {
+        textScrollList -e -removeAll $tsl3;
+        textScrollList -e -removeAll $tsl2;
+        for($shortPath in $uniquePaths)
+        {
+            int $bool = `filetest -e $shortPath`;
+            if($bool == 1)
+            {
+                textScrollList -e -a "Exist" $tsl2;
+            }
+            else
+            {
+                textScrollList -e -a "None" $tsl2;
+            }
+            textScrollList -e -a $shortPath $tsl3;
+        }
+    }
+    else
+    {
+        for($shortPath in $uniquePaths)
+        {
+            int $bool = `filetest -e $shortPath`;
+            if($bool == 1)
+            {
+                textScrollList -e -a "Exist" $tsl2;
+            }
+            else
+            {
+                textScrollList -e -a "None" $tsl2;
+            }
+            textScrollList -e -a $shortPath $tsl3;
+        }     
+    }
+    return $uniquePaths;
+}
+
+global proc replaceAiPath()
+{
+    global string $tsl1,$tsl3,$tsl2;
+    string $nowName = `textField -q -tx $tsl1`;
+    string $fromNativePath = `fromNativePath($nowName)`;
+    string $objList[] = `ls -sl`;
+    for($obj in $objList)
+    {
+        if(`nodeType $obj`!="aiVolume")
+        {
+            continue;
+        }
+        else
+        {
+            setAttr -type "string" ($obj+".filename") $fromNativePath;
+        }
+    }
+    refreshEditorTemplates;
+    textScrollList -e -removeAll $tsl3;
+    textScrollList -e -removeAll $tsl2;
+    attachNameToUI();
+}
+
+
+global proc selectAiStandByPath(string $aiPaths[])
+{
+    select -clear;
+    global string $tsl1,$tsl3;
+    string $temps[] = `textScrollList -q -si $tsl3`;
+    
+    textField -e -tx $temps[0] $tsl1;
+    
+    for($aiVolume in $aiPaths)
+    {
+        string $aiPath = `getAttr ($aiVolume+".filename")`;
+        
+        if($aiPath == $temps[0])
+        {
+            select -add $aiVolume;
+        }
+    }
+        
+    //string $objList[] = `ls -sl`;
+    //return $aobjList;
+}
+
+//filetest -e "C:\\Users\\Administrator\\Documents\\maya\\projects\\default\\workspace.mel";
+
+global proc selectAllaiStandIn()
+{
+    string $allasss[] = `ls -type aiVolume`;
+    select -r $allasss;
+}
+
+
+global proc setMode()
+{
+    //global string $lsType[];
+    string $lsTypes[] = `ls -type aiVolume`;
+    global string $intSlider;
+    int $mode = `intSliderGrp -q -v $intSlider`;
+    for($aiObj in $lsTypes)
+    {
+        setAttr ($aiObj+".mode") $mode;
+    }
+}
+
+global proc setSelMode()
+{
+    string $lsTypes[] = `ls -sl -dag -s`;
+    global string $intSlider;
+    int $mode = `intSliderGrp -q -v $intSlider`;
+    for($aiObj in $lsTypes)
+    {
+        if(`nodeType $aiObj` == "aiVolume")
+        {
+            setAttr ($aiObj+".mode") $mode;
+        }
+        else
+        {
+            continue;
+        }
+    }
+}
+
+
+

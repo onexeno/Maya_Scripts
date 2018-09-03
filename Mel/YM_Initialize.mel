@@ -1,0 +1,89 @@
+//python("import sys\nsys.path.append('//s3/软件库/P_插件目录/YunMan_Toolsets/Common/Python')")
+
+
+global proc YM_Initialize(string $dir)
+{
+    float $mayaVersion = `getApplicationVersionAsFloat`;
+    string $fileList[] = `getFileList -fld $dir`;
+    string $errorList[];
+    /*for($file in $fileList)
+    {
+        if($file!="YM_Initialize.mel")
+        {
+            if(fileExtension($file)=="mel")
+            {
+                if (catchQuiet(eval("source " + "\"" + $dir + "/" + $file + "\""))<0)
+                    $errorList[size($errorList)] = $file;
+                else
+                    print("load mel: "+$dir+"/"+$file+" success!\n");
+            }
+        }
+    }*/
+    if(!`shelfLayout -q -ex YM_Tools`)
+    {
+            addNewShelfTab YM_Tools;
+    }
+
+    
+    if(`shelfButton -q -ex YM_Tools_Entry`)
+        deleteUI YM_Tools_Entry;
+    
+    shelfButton -l "Zen"
+                -h 34
+                -w 34 
+                -i ($dir+"/Icons/ACEs.bmp")
+                -p YM_Tools 
+                YM_Tools_Entry;
+    
+  
+    
+    for($file in $fileList)
+    { 
+        if($file!="YM_Initialize.mel")
+        {
+            if(fileExtension($file)=="mel")
+            {
+                string $command = "source " + "\"" + $dir + "/" + $file + "\""; 
+                string $fileInfo = getMelLine($dir+"/"+$file);
+                if(size($file)==0)
+                {
+                    $fileInfo = $file;
+                }
+                if($mayaVersion>=2017)
+                {shelfButton -e -mi $fileInfo $command YM_Tools_Entry;}
+                else{
+                string $obj[] = `shelfButton -q -pma YM_Tools_Entry`;
+                menuItem -l $fileInfo -c $command -p $obj[0];}
+            }
+        }    
+    }
+
+    saveShelf "YM_Tools" (`internalVar -ush`+"shelf_YM_Tools");
+}
+
+global proc string getMelLine(string $file)
+{
+    int $pipe = fopen($file,"r");
+
+    string $line = `fgetline $pipe`;
+    fclose $pipe;
+    return `substring $line 3 (size($line)-1)`;
+}
+string $path = whatIs("YM_Initialize");
+string $temp[];
+
+tokenize $path ": " $temp;
+string $dir;
+if(size($temp)>2)
+{
+    $dir = dirname($temp[size($temp)-2] + ":" + $temp[size($temp)-1]);
+}
+else
+{
+    $dir = dirname($temp[size($temp)-1]);
+}
+
+//print $dir;
+YM_Initialize($dir);
+
+//saveShelf "YM_Tools" (`internalVar -ush`+"shelf_YM_Tools");

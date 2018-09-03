@@ -1,0 +1,72 @@
+string $lightName = "pointLight";  //灯光名称
+string $particleName = "particleShape1"; //粒子Shape名称
+float $expMulConstant = 1.0;   //改变灯光强度的系数，intensiy跟radiusPP对应
+
+if(!`objExists "pointLightGroup"`)
+{
+	createNode "transform" -n "pointLightGroup";
+}
+
+if(frame<=1)
+{
+	catchQuiet(delete(`listRelatives -c "pointLightGroup"`));
+}
+else{
+	for($i = 0;$i<`getAttr particleShape1.count`;$i++)
+	{
+		if(!`objExists ($lightName+$i)`)
+		{
+			string $pntLight = `pointLight -n ($lightName+$i)`;
+            select -cl;
+			catchQuiet(`parent $pntLight "pointLightGroup"`);
+            if(`attributeQuery -ex -node $particleName "rgbPP"`)
+            {
+                float $rgb[] = `getParticleAttr -at "rgbPP" particleShape1.pt[$i]`;
+                setAttr ($lightName+$i+".color") ($rgb[0]) ($rgb[1]) ($rgb[2]) ;
+            }
+            if(`attributeQuery -ex -node $particleName "radiusPP"`)
+            {
+                float $exp[] = `getParticleAttr -at "radiusPP" particleShape1.pt[$i]`;
+                setAttr  ($lightName+$i+".intensity") ($exp[0]*$expMulConstant);
+            }
+        }
+		
+        float $p[] = `getParticleAttr -at "position" particleShape1.pt[$i]`;
+
+		catchQuiet(`move ($p[0]) ($p[1]) ($p[2]) ($lightName+$i)`);
+	}
+}
+
+
+
+
+
+
+
+global proc vector [] createLocator(vector $oPos,int $count,int $variance)
+{
+    vector $up = <<0,1,0>>;
+    vector $t = cross($oPos,$up);
+    vector $dirs[];
+    for($i= 0;$i<($count-$variance);$i++)
+    {
+        vector $dir = rot($t/(mag($t)+0.000001),$up,deg_to_rad($i*(360/$count)));
+        string $locator[] = `spaceLocator`;
+        move ($dir.x) ($dir.y) ($dir.z) $locator[0];
+        $dirs[size($dirs)] = $dir;
+    }
+    return $dirs;
+}
+
+global proc genLocatorSteps(vector $original,vector $dir, float $incStep)
+{
+    vector $newPos += $dir * $incStep;
+
+
+}
+
+
+
+createLocator(<<1,0,0>>,6,3);
+
+particleShape1.position

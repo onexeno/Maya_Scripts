@@ -1,0 +1,167 @@
+global proc genNotesLocator(string $content)
+{
+    global string $gLocatorName;
+    if(`objExists $gLocatorName`)
+    {
+        lockNode -l off $gLocatorName;
+        setAttr -l off ($gLocatorName+".notes");
+        if ( !`attributeQuery -node $gLocatorName -exists "notes"` )
+        {
+        addAttr -sn "nts" -ln "notes" -dt "string" $gLocatorName;
+        }
+        
+        
+        setAttr ($gLocatorName+".notes") -type "string" $content;
+        setAttr -l on ($gLocatorName+".notes");
+        lockNode -l on $gLocatorName;
+    }
+    else
+    {
+        $tempNull = `group -em -n $gLocatorName`;
+        
+        if ( !`attributeQuery -node $gLocatorName -exists "notes"` )
+        {
+        addAttr -sn "nts" -ln "notes" -dt "string" $gLocatorName;
+        }
+        
+        setAttr ($gLocatorName+".notes") -type "string" $content;
+        setAttr -l on ($gLocatorName+".notes");
+        lockNode -l on $gLocatorName;
+    }
+}
+
+global proc string [] getContentArray()
+{
+    //string $buffer[];
+    global string $gLocatorName;
+    if(`objExists $gLocatorName`)
+    {
+        string $noteContent = `getAttr ($gLocatorName+".notes")`;
+        string $tempStringList[];
+        tokenize $noteContent "\n" $tempStringList;
+        //$buffer[size($buffer)] = $tempStringList;
+        return $tempStringList;
+    }
+    else
+    {
+        warning "No connections save notes in the scenes";
+        return {};
+    } 
+}
+
+
+global proc string [] connectPFXAttr()
+{
+    global string $gLocatorName;
+    string $buffers[] = getContentArray();
+    if(size($buffers)>0)
+    {
+        string $invalidAttrs[];
+        for($buffer in $buffers)
+        {
+            string $temp[];
+            tokenize $buffer "*" $temp;
+            if(size($temp)==2)
+            {
+                if(!(catchQuiet(`connectAttr -f $temp[0] $temp[1]`)))
+                {
+                    continue;
+                }
+                else
+                {
+                    $invaildAttrs[size($invalidAttrs)]=$temp[0];
+                    $invalidAttrs[size($invalidAttrs)]=$temp[1];
+                    continue;
+                }
+            }
+            else{
+                $invalidAttrs[size($invalidAttrs)]=$buffer;
+                continue;
+            } 
+        }
+        return $invalidAttrs;
+    }
+    else
+    {
+        warning "No attrs found";
+        return {};
+    }  
+}
+
+global proc string generatePFXConnections()
+{
+    global string $gLocatorName;
+    string $allPfxToons[] = `ls -typ "pfxToon"`;
+    string $notes[];
+    
+    for ($pfxToon in $allPfxToons)
+    {
+        int $indexList[] = `getAttr -mi ($pfxToon+".inputSurface")`;
+        for($index in $indexList)
+        {
+            string $srcOutMesh = `connectionInfo -sfd ($pfxToon+".inputSurface["+$index+"].surface")`;
+            string $srcWorldMatrix = `connectionInfo -sfd ($pfxToon+".inputSurface["+$index+"].inputWorldMatrix")`;
+            
+            if(size($srcOutMesh)>0)
+            {
+                catchQuiet(`disconnectAttr $srcOutMesh ($pfxToon + ".inputSurface[" + $index + "].surface")`);
+                catchQuiet(`disconnectAttr $srcWorldMatrix ($pfxToon + ".inputSurface[" + $index + "].inputWorldMatrix")`);
+                //Disconnect Attributes
+                
+                $notes[size($notes)] = $srcOutMesh + " * " + $pfxToon + ".inputSurface[" + $index + "].surface\n";
+                $notes[size($notes)] = $srcWorldMatrix + " * " + $pfxToon + ".inputSurface[" + $index + "].inputWorldMatrix\n";
+            }
+            else
+            {
+                continue;
+            }
+        }
+    }
+    
+    if(`objExists $gLocatorName`)
+    {
+        if(size(`getAttr ($gLocatorName+".notes")`)==0)
+        {
+            genNotesLocator(stringArrayToString($notes,""));
+        }
+        else
+        {
+            string $oldNotes = `getAttr ($gLocatorName+".notes")`;
+            string $newNotes = stringArrayToString($notes,"");
+            string $temp[] = stringToStringArray(($oldNotes+"\n"+$newNotes),"\n");
+            $temp = stringArrayRemoveDuplicates($temp);
+            string $newString;
+            for($tempItem in $temp)
+            {
+                $newString += $tempItem+"\n";
+            }
+            genNotesLocator($newString);
+        }
+    }
+    else
+    {
+        genNotesLocator(stringArrayToString($notes,""));
+    }
+
+    return stringArrayToString($notes,"");
+}
+
+
+
+global proc PFXConnectionsEditor()
+{
+    global string $gLocatorName;
+    $gLocatorName = "PFXToonLinesConnections_NotesLocator";
+    
+    if(`window -ex PFXtoonConnectionsEditor`)
+        deleteUI PFXtoonConnectionsEditor;
+        
+    window PFXtoonConnectionsEditor;
+    columnLayout;
+    button -l "断开连接" -c "generatePFXConnections()" -w 120 -h 50 -bgc 0.1 0.1 0.35;
+    button -l "重新连接" -c "connectPFXAttr()" -w 120 -h 50 -bgc 0.35 0.15 0.1;
+    catchQuiet(`windowPref -r PFXtoonConnectionsEditor`);
+    showWindow PFXtoonConnectionsEditor;
+}
+
+PFXConnectionsEditor;

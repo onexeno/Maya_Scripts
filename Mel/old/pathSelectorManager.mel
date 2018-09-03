@@ -1,38 +1,93 @@
-global string $pathIconList,$pathTagList,$addTagTextField,$addPathTextField,$filePath,$checkBox1,$button1;
-global string $file;
-$file = "userPath";
-
+global string $pathIconList,$pathTagList,$addTagTextField,$addPathTextField,$filePath,$checkBox1,$button1,$iconList;
+global string $file = "userPath";
 
 global proc addPath(string $pathList,string $tagList,string $textField,string $tagField)
 {
+
     string $tempPath = fromNativePath(`textField -q -tx $textField`);
     string $tag = `textField -q -tx $tagField`;
     //$tempPath = ($tempPath);
-    if(size($tempPath)==0)
+    string $existsList[] = `textScrollList -q -ai $pathList`;
+
+    if(stringArrayFind($tempPath,0,$existsList)<=0)
     {
-        warning "Please input a Path";
-    }
-    else if (size($tag)==0)
-    {
-        if(size($tempPath)!=0)
+
+        if(size($tempPath)==0)
         {
-            string $temp[] = {};
-            tokenize $tempPath "/" $temp;
-            
-            string $tempTag = goUpperOrLower($temp[size($temp)-1],1,1,1);
-            textScrollList -e -a $tempPath $pathList;
-            textScrollList -e -a $tempTag $tagList;
+            warning "Please input a Path";
+        }
+        else if (size($tag)==0)
+        {
+            if(size($tempPath)!=0)
+            {
+                string $temp[] = {};
+                tokenize $tempPath "/" $temp;
+
+                string $tempTag = goUpperOrLower($temp[size($temp)-1],1,1,1);
+                textScrollList -e -a $tempPath $pathList;
+                textScrollList -e -a $tempTag $tagList;
+            }
+            else
+            {
+                warning "Please input the Path";
+            }
         }
         else
         {
-            warning "Please input the Path";
+            textScrollList -e -a $tempPath $pathList;
+            textScrollList -e -a $tag $tagList;
         }
+        global string $iconList;
+        isExists($iconList,$pathList);
     }
-    else 
+    else
     {
-        textScrollList -e -a $tempPath $pathList;
-        textScrollList -e -a $tag $tagList;
+        //print 2;
     }
+}
+
+global proc makeDir(string $iconList,string $pathList)
+{
+    string $list[] = `textScrollList -q -si $pathList`;
+    for($item in $list)
+    {
+        if(`filetest -r $item` == 0)
+            sysFile -md $item;
+            isExists($iconList,$pathList);
+    }
+}
+
+global proc sourceMel(string $pathField,string $sourceMelList)
+{
+    global string $textField1,$scTextList;
+    string $fileList[] = `textScrollList -q -si $scTextList`;
+
+    string $path = `textField -q -tx $textField1`;
+    string $melPathAb = "source" + " " + "\"" + $path + "/" + $fileList[0] + "\"";
+    //print $melPathAb;
+    eval($melPathAb);
+}
+
+global proc fileWindow(string $pathList)
+{
+    global string $textField1,$scTextList;
+    string $path[] = `textScrollList -q -si $pathList`;
+
+    if(`window -ex melWindow`)
+        deleteUI melWindow;
+    window -t "melSource" melWindow;
+    scrollLayout;
+    $textField1 = `textField -w 300 -tx $path[0] -en off`;
+    $scTextList = `textScrollList -w 300 -ams off -dcc "sourceMel($textField1,$scTextList)"`;
+    showWindow melWindow;
+    string $temp = `textField -q -tx $textField1`;
+    string $melList[] = `getFileList -fld $temp -fs "*.mel"`;
+    for ($i in $melList)
+    {
+        textScrollList -e -a $i $scTextList;
+    }
+    textScrollList -q -si $scTextList;
+
 }
 
 
@@ -88,18 +143,20 @@ global proc addPresetPath(string $pathTagList,string $pathList,string $arrayList
         textScrollList -e -fn "boldLabelFont" $pathTagList;
         //textScrollList -e -fn "obliqueLabelFont" $pathList;
     }
+    global string $iconList;
+    isExists($iconList,$pathList);
 }
 
 global proc addPathString(string $pathTagList,string $pathList,string $pathItem,string $tagItem,int $intersectTrigger)
 {
-    
+
     if (size($tagItem)==0)
     {
         if(size($pathItem)!=0)
         {
             string $temp[] = {};
             tokenize $pathItem "/" $temp;
-            
+
             string $tempTag = goUpperOrLower($temp[size($temp)-1],1,1,1);
             textScrollList -e -a $pathItem $pathList;
             textScrollList -e -a $tempTag $pathTagList;
@@ -109,25 +166,25 @@ global proc addPathString(string $pathTagList,string $pathList,string $pathItem,
             warning "Please select a item";
         }
     }
-    else 
+    else
     {
         textScrollList -e -a $pathItem $pathList;
         textScrollList -e -a $tagItem $pathTagList;
     }
-    
+
     if($intersectTrigger==1)
     {
         intersectLineFont($pathTagList);
-        intersectLineFont($pathList); 
+        intersectLineFont($pathList);
     }
     else if ($intersectTrigger == 2)
     {
         textScrollList -e -fn "boldLabelFont" $pathTagList;
     }
-    
+
 }
 
-//Í¬²½Ñ¡Ôñ
+//åŒæ­¥é€‰æ‹©
 global proc selectListSync(string $list1,string $list2)
 {
     int $indexs[] = `textScrollList -q -sii $list1`;
@@ -140,15 +197,19 @@ global proc selectListSync(string $list1,string $list2)
 
 global proc deleteListItemSync(string $list1,string $list2)
 {
+    global string $iconList;
+
     int $indexs[] = `textScrollList -q -sii $list1`;
     catchQuiet(`textScrollList -e -rii $indexs[0] $list1`);
-    catchQuiet(`textScrollList -e -rii $indexs[0] $list2`);    
+    catchQuiet(`textScrollList -e -rii $indexs[0] $list2`);
+    catchQuiet(`iconTextScrollList -e -rii $indexs[0] $iconList`);
+    isExists($iconList,$list1);
     /*if(size($indexs)>1)
     {
 
         textScrollList -e -rii $indexs[0] $list1;
         textScrollList -e -rii $indexs[0] $list2;
-            
+
     }
     else
     {
@@ -158,7 +219,7 @@ global proc deleteListItemSync(string $list1,string $list2)
 
 }
 
-//Ôö¼Ó¹ıÂËÆ÷
+//å¢åŠ è¿‡æ»¤å™¨
 global proc filterText(string $textField,string $scrollList,string $nodes[])
 {
     //global string $tf1 , $tsl1;
@@ -169,7 +230,7 @@ global proc filterText(string $textField,string $scrollList,string $nodes[])
     string $temps[] = $nodes;
 
     string $nowTemp[];
-    if(size($text)!=0)    //ÕÒÈ«³Æ
+    if(size($text)!=0)    //æ‰¾å…¨ç§°
     {
         for($file in $temps)
         {
@@ -179,7 +240,7 @@ global proc filterText(string $textField,string $scrollList,string $nodes[])
             }
         }
 
-        if(size($nowTemp)==0)  //Èç¹ûÕÒ²»µ½È«³Æ£¬¾ÍÕÒ½üËÆ
+        if(size($nowTemp)==0)  //å¦‚æœæ‰¾ä¸åˆ°å…¨ç§°ï¼Œå°±æ‰¾è¿‘ä¼¼
         {
             for($file in $temps)
             {
@@ -196,7 +257,7 @@ global proc filterText(string $textField,string $scrollList,string $nodes[])
             textScrollList -e -a $now $scrollList;
         }
     }
-    else if (size($text)==0)   //Èç¹ûÊäÈë¿òÎª0Ôò·µ»ØÈ«½ÚµãÁĞ±í
+    else if (size($text)==0)   //å¦‚æœè¾“å…¥æ¡†ä¸º0åˆ™è¿”å›å…¨èŠ‚ç‚¹åˆ—è¡¨
     {
         textScrollList -e -ra $scrollList;
         for($file in $temps)
@@ -208,39 +269,39 @@ global proc filterText(string $textField,string $scrollList,string $nodes[])
 }
 
 
-//¸²Ğ´ÎÄ¼ş
+//è¦†å†™æ–‡ä»¶
 global proc writeToPathFile(string $list[],string $filenamePath)
 {
-    /*if(`filetest -w ($filenamePath)`)  //¼ì²âÎÄ¼şÊÇ·ñ´æÔÚ
+    /*if(`filetest -w ($filenamePath)`)  //æ£€æµ‹æ–‡ä»¶æ˜¯å¦å­˜åœ¨
     {
-        int $fileId = `fopen ($filenamePath) "w"`;  //´ò¿ªÎÄ¼ş ²¢·µ»Ø´ò¿ªĞòºÅ
+        int $fileId = `fopen ($filenamePath) "w"`;  //æ‰“å¼€æ–‡ä»¶ å¹¶è¿”å›æ‰“å¼€åºå·
         for($i=0,$j=1;$i<size($list);$i+=2,$j+=2)
         {
-            fprint $fileId ($list[$i] + "*" + $list[$j] + "\n");  //ÔÚÂ·¾¶ºÍ±êÇ©ÖĞ¼ä¼ÓÉÏ"*"£¬·½±ãÌáÈ¡
+            fprint $fileId ($list[$i] + "*" + $list[$j] + "\n");  //åœ¨è·¯å¾„å’Œæ ‡ç­¾ä¸­é—´åŠ ä¸Š"*"ï¼Œæ–¹ä¾¿æå–
         }
-        fclose $fileId;  //¹Ø±ÕÎÄ¼ş
+        fclose $fileId;  //å…³é—­æ–‡ä»¶
     }*/
-    
-    int $fileId = `fopen ($filenamePath) "w"`;  //´ò¿ªÎÄ¼ş ²¢·µ»Ø´ò¿ªĞòºÅ
+
+    int $fileId = `fopen ($filenamePath) "w"`;  //æ‰“å¼€æ–‡ä»¶ å¹¶è¿”å›æ‰“å¼€åºå·
     for($i=0,$j=1;$i<size($list);$i+=2,$j+=2)
     {
-        fprint $fileId ($list[$i] + "*" + $list[$j] + "\n");  //ÔÚÂ·¾¶ºÍ±êÇ©ÖĞ¼ä¼ÓÉÏ"*"£¬·½±ãÌáÈ¡
+        fprint $fileId ($list[$i] + "*" + $list[$j] + "\n");  //åœ¨è·¯å¾„å’Œæ ‡ç­¾ä¸­é—´åŠ ä¸Š"*"ï¼Œæ–¹ä¾¿æå–
     }
-    fclose $fileId;  //¹Ø±ÕÎÄ¼ş
+    fclose $fileId;  //å…³é—­æ–‡ä»¶
 
 }
 
 
-//¶ÁÎÄ¼ş
+//è¯»æ–‡ä»¶
 global proc string [] readFromPathFile(string $filenamePath)
 {
-    if(`filetest -r ($filenamePath)`)   //¼ì²âÎÄ¼şÊÇ·ñ´æÔÚ
+    if(`filetest -r ($filenamePath)`)   //æ£€æµ‹æ–‡ä»¶æ˜¯å¦å­˜åœ¨
     {
-        string $allLine[] = freadAllLines ($filenamePath);  //¶ÁËùÓĞĞĞ
+        string $allLine[] = freadAllLines ($filenamePath);  //è¯»æ‰€æœ‰è¡Œ
         string $tempArray[] = {};
         for($line in $allLine)
         {
-            $tempArray = stringArrayCatenate($tempArray,stringToStringArray($line,"*"));  //ÓÃ"*"½«×Ö·û´®·Ö¸îÎª×Ö·û´®Êı×é
+            $tempArray = stringArrayCatenate($tempArray,stringToStringArray($line,"*"));  //ç”¨"*"å°†å­—ç¬¦ä¸²åˆ†å‰²ä¸ºå­—ç¬¦ä¸²æ•°ç»„
         }
         return $tempArray;
     }
@@ -253,17 +314,17 @@ global proc string [] readFromPathFile(string $filenamePath)
 }
 
 
-//»ñÈ¡µ±Ç°¹¤³ÌÄ¿Â¼ÏÂµÄËùÓĞÄ¿Â¼
+//è·å–å½“å‰å·¥ç¨‹ç›®å½•ä¸‹çš„æ‰€æœ‰ç›®å½•
 global proc string [] getProjectPathFolder(string $rootPath)
 {
-    //string $projectsPath = `workspace -q -rd`;   //rdÊÇ»ñÈ¡µ±Ç°¹¤³ÌÄ¿Â¼
-    string $fileInProjects[] = `getFileList -fld $rootPath`;  //»ñÈ¡µ±Ç°Ä¿Â¼ÏÂËùÓĞµÄÎÄ¼ş
+    //string $projectsPath = `workspace -q -rd`;   //rdæ˜¯è·å–å½“å‰å·¥ç¨‹ç›®å½•
+    string $fileInProjects[] = `getFileList -fld $rootPath`;  //è·å–å½“å‰ç›®å½•ä¸‹æ‰€æœ‰çš„æ–‡ä»¶
     string $folderList[] = {};
-    
+
     for($file in $fileInProjects)
     {
 
-        if(`filetest -d ($rootPath+$file)`)   //Èç¹û¼ì²âÎªÎÄ¼ş¼ĞÔòÌí¼Óµ½ÁĞ±íÖĞ
+        if(`filetest -d ($rootPath+$file)`)   //å¦‚æœæ£€æµ‹ä¸ºæ–‡ä»¶å¤¹åˆ™æ·»åŠ åˆ°åˆ—è¡¨ä¸­
         {
             $folderList[size($folderList)] = $rootPath+$file;
         }
@@ -276,56 +337,56 @@ global proc string [] getProjectPathFolder(string $rootPath)
 }
 
 
-//¸øÃ¿¸öÂ·¾¶Ìí¼ÓTag
+//ç»™æ¯ä¸ªè·¯å¾„æ·»åŠ Tag
 global proc string [] addTagToArray(string $oriArray[])
 {
     string $temp[] = {};
     string $operatedArray[] = {};
     for($oriString in $oriArray)
     {
-        tokenize $oriString "/" $temp;  //ÓÃ"/"·Ö¸îÂ·¾¶
-        $operatedArray[size($operatedArray)] = $oriString;  //ÆæÊı×Ö·û´®ÎªÔ­Ê¼×Ö·û´®,Ò²¾ÍÊÇÂ·¾¶Í·
-        $operatedArray[size($operatedArray)] = goUpperOrLower($temp[size($temp)-1],1,1,1);   //Å¼Êı×Ö·û´®Î»Ô­Ê¼×Ö·û´®×îºóÒ»¸öµ¥´Ê,Ò²¾ÍÊÇÂ·¾¶±êÇ©,×ª»»Ê××ÖÄ¸´óĞ´
-        
+        tokenize $oriString "/" $temp;  //ç”¨"/"åˆ†å‰²è·¯å¾„
+        $operatedArray[size($operatedArray)] = $oriString;  //å¥‡æ•°å­—ç¬¦ä¸²ä¸ºåŸå§‹å­—ç¬¦ä¸²,ä¹Ÿå°±æ˜¯è·¯å¾„å¤´
+        $operatedArray[size($operatedArray)] = goUpperOrLower($temp[size($temp)-1],1,1,1);   //å¶æ•°å­—ç¬¦ä¸²ä½åŸå§‹å­—ç¬¦ä¸²æœ€åä¸€ä¸ªå•è¯,ä¹Ÿå°±æ˜¯è·¯å¾„æ ‡ç­¾,è½¬æ¢é¦–å­—æ¯å¤§å†™
+
     }
     return $operatedArray;
 }
 
-//½«¶ÔÓ¦Î»ÖÃµÄ×Ö·û×ª»»´óĞ¡Ğ´
+//å°†å¯¹åº”ä½ç½®çš„å­—ç¬¦è½¬æ¢å¤§å°å†™
 global proc string goUpperOrLower(string $word,int $start,int $end,int $trigger)
 {
     string $toWord;
     if($trigger == 1)
     {
         $toWord = toupper(`substring $word $start $end`);
-        //×ª»»´Óstartµ½endµÄ×Ö·ûÎª´óĞ´
+        //è½¬æ¢ä»startåˆ°endçš„å­—ç¬¦ä¸ºå¤§å†™
     }
     else
     {
         $toWord = tolower(`substring $word $start $end`);
-        //×ª»»´Óstartµ½endµÄ×Ö·ûÎ»Ğ¡Ğ´
+        //è½¬æ¢ä»startåˆ°endçš„å­—ç¬¦ä½å°å†™
     }
 
-    //Èç¹ûÒª×ª»»µÄ×Ö·û´®ÊÇ´ÓÊ××ÖÄ¸¿ªÊ¼£¬µ«ÊÇ²»µ½×îºóÒ»¸ö×Ö·û
+    //å¦‚æœè¦è½¬æ¢çš„å­—ç¬¦ä¸²æ˜¯ä»é¦–å­—æ¯å¼€å§‹ï¼Œä½†æ˜¯ä¸åˆ°æœ€åä¸€ä¸ªå­—ç¬¦
     if($start==1&&$end!=size($word))
     {
         string $otherWord = `substring $word ($end+1) (size($word))`;
         return ($toWord + $otherWord);
     }
-    //Èç¹ûÒª×ª»»µÄ×Ö·û´®²»ÊÇ´ÓÊ××ÖÄ¸¿ªÊ¼£¬µ«ÊÇµ½×îºóÒ»¸ö×Ö·ûÎªÖ¹
+    //å¦‚æœè¦è½¬æ¢çš„å­—ç¬¦ä¸²ä¸æ˜¯ä»é¦–å­—æ¯å¼€å§‹ï¼Œä½†æ˜¯åˆ°æœ€åä¸€ä¸ªå­—ç¬¦ä¸ºæ­¢
     else if ($start>1&&$end==size($word))
     {
         string $otherWord = `substring $word 1 ($start-1)`;
         return ($otherWord + $toWord);
     }
-    //Èç¹ûÒª×ª»»µÄ×Ö·ûÎ»ÓÚÕû¸ö×Ö·û´®ÖĞ¼ä
+    //å¦‚æœè¦è½¬æ¢çš„å­—ç¬¦ä½äºæ•´ä¸ªå­—ç¬¦ä¸²ä¸­é—´
     else if ($start>1&&$end!=size($word))
     {
         string $frontWord = `substring $word (1) ($start-1)`;
         string $backWord = `substring $word ($end+1) (size($word))`;
         return ($frontWord + $toWord + $backWord);
     }
-    //Õû¸ö×Ö·û´®¶¼Òª×ª»»
+    //æ•´ä¸ªå­—ç¬¦ä¸²éƒ½è¦è½¬æ¢
     else
     {
         return $toWord;
@@ -343,7 +404,8 @@ global proc intersectLineFont(string $list)
     }
 }
 
-global proc initializeList(string $tagList,string $pathList,string $filename)
+//initializeçš„tagListå’ŒpathListçš„é¡ºåºæåäº†ã€‚ã€‚ã€‚
+global proc initializeList(string $tagList,string $pathList,string $filename,string $statusList)
 {
     string $elements[] = readFromPathFile($filename);
     if(size($elements)>0)
@@ -354,9 +416,31 @@ global proc initializeList(string $tagList,string $pathList,string $filename)
     {
         addPresetPath($pathList,$tagList,addTagToArray(getProjectPathFolder(`workspace -q -rd`)),2);
     }
+    isExists($statusList,$tagList);
+}
+
+//åˆ¤å®šç›®å½•æ˜¯å¦å­˜åœ¨
+global proc isExists(string $statusList,string $monitorList)
+{
+    iconTextScrollList -e -ra -bgc 0.27 0.27 0.27 $statusList;
+    string $allPathList[] = `textScrollList -q -ai $monitorList`;
+    int $i = 1;
+    for($path in $allPathList)
+    {
+        if(`filetest -r $path`)
+        {
+            iconTextScrollList -e -a "OK" -itc $i 0.1 0.9 0.1 $statusList;
+        }
+        else
+        {
+            iconTextScrollList -e -a "NO" -itc $i 0.9 0.1 0.1 $statusList;
+        }
+        $i++;
+    }
 }
 
 
+//ä¿å­˜æ–‡ä»¶å¹¶æç¤ºæ˜¯å¦è¦†ç›–
 global proc saveFile(string $tagList,string $pathList,string $filename)
 {
     string $pathListItem[] = `textScrollList -q -ai $pathList`;
@@ -369,7 +453,7 @@ global proc saveFile(string $tagList,string $pathList,string $filename)
     }
     if(`filetest -w $filename`)
     {
-        if(`confirmDialog -t "¸²¸ÇÎÄ¼ş" -b "Yes" -b "No" -db "Yes" -cb "No" -m "ÎÄ¼şÒÑ´æÔÚ£¬Òª¸²¸ÇÃ´£¿" -ds "No"` == "Yes")
+        if(`confirmDialog -t "è¦†ç›–æ–‡ä»¶" -b "Yes" -b "No" -db "Yes" -cb "No" -m "æ–‡ä»¶å·²å­˜åœ¨ï¼Œè¦è¦†ç›–ä¹ˆï¼Ÿ" -ds "No"` == "Yes")
         {
             writeToPathFile($tempList,$filename);
         }
@@ -384,7 +468,7 @@ global proc saveFile(string $tagList,string $pathList,string $filename)
 }
 
 
-
+//è·å–æ–‡ä»¶å®Œæ•´è·¯å¾„å
 global proc string filename(string $filenameField)
 {
     global string $pathFileExtension,$appDir,$filename;
@@ -394,6 +478,8 @@ global proc string filename(string $filenameField)
     return ($appDir + $filename + $pathFileExtension);
 }
 
+
+//é”å®šåˆ—è¡¨å¤šé€‰æ¨¡å¼
 global proc listLockMultiSelect(string $targetListA,string $targetListB,string $checkBox)
 {
     if(`checkBox -q -v $checkBox`!=1)
@@ -410,9 +496,11 @@ global proc listLockMultiSelect(string $targetListA,string $targetListB,string $
 
 
 
-
+//æ·»åŠ é¢„è®¾å†…éƒ¨è·¯å¾„å˜é‡
 global proc addInternalVarPath(string $pathList,string $tagList,int $internalVar)
 {
+
+
     string $tempPath;
     string $tag;
     switch ($internalVar)
@@ -420,14 +508,14 @@ global proc addInternalVarPath(string $pathList,string $tagList,int $internalVar
         case 0:
         {
             $tempPath = `internalVar -uad`;
-            $tag = "MayaÄ¬ÈÏÄ¿Â¼";
+            $tag = "Mayaé»˜è®¤ç›®å½•";
             addPathString($tagList,$pathList,$tempPath,$tag,2);
             break;
         }
         case 1:
         {
             $tempPath = `internalVar -utd`;
-            $tag = "MayaÁÙÊ±Ä¿Â¼";
+            $tag = "Mayaä¸´æ—¶ç›®å½•";
             addPathString($tagList,$pathList,$tempPath,$tag,2);
             break;
         }
@@ -439,75 +527,93 @@ global proc addInternalVarPath(string $pathList,string $tagList,int $internalVar
         }
         case 3:
         {
-            addPresetPath($tagList,$pathList,addTagToArray(getProjectPathFolder("J:/JXB/")),2);  //×¢ÒâÕâÀï±ØĞëÓÃ"/"ÇÒ×îºóÒ»¸ö×Ö·ûÒ²ÒªÊÇ"/"
+            addPresetPath($tagList,$pathList,addTagToArray(getProjectPathFolder("J:/JXB/")),2);  //æ³¨æ„è¿™é‡Œå¿…é¡»ç”¨"/"ä¸”æœ€åä¸€ä¸ªå­—ç¬¦ä¹Ÿè¦æ˜¯"/"
         }
         default:
             break;
     }
-   
+    global string $iconList;
+    isExists($iconList,$pathList);
+
 }
 
-
+//ç»™æŒ‰é’®åŠ ç›®å½•é¡¹
 global proc buttonPopMenu(string $button,string $pathList,string $tagList)
 {
     global string $pathIconList,$pathTagList;
     popupMenu -p $button;
-        menuItem -l "MayaÄ¬ÈÏÄ¿Â¼" -c "addInternalVarPath($pathIconList,$pathTagList,0)";
-        menuItem -l "MayaÁÙÊ±Ä¿Â¼" -c "addInternalVarPath($pathIconList,$pathTagList,1)";
-        menuItem -l "Maya¹¤³ÌÄ¿Â¼" -c "addInternalVarPath($pathIconList,$pathTagList,2)";
+        menuItem -l "Mayaé»˜è®¤ç›®å½•" -c "addInternalVarPath($pathIconList,$pathTagList,0)";
+        menuItem -l "Mayaä¸´æ—¶ç›®å½•" -c "addInternalVarPath($pathIconList,$pathTagList,1)";
+        menuItem -l "Mayaå·¥ç¨‹ç›®å½•" -c "addInternalVarPath($pathIconList,$pathTagList,2)";
         menuItem -l "J:/JXB/" -c "addInternalVarPath($pathIconList,$pathTagList,3)";
 }
 
+
+//ä¸»ç¨‹åº
 global proc pathSelectorManager()
  {
     global string $file;
-    global string $pathIconList,$pathTagList,$addTagTextField,$addPathTextField,$filePath,$checkBox1,$button1;
+    global string $pathIconList,$pathTagList,$addTagTextField,$addPathTextField,$filePath,$checkBox1,$button1,$iconList;
     if(`window -ex pathSelector`)
         deleteUI pathSelector;
     //global string $pathIconList;
-    
-    window -t "Path Selector 0.1" pathSelector;
+
+    window -t "Path Selector 0.3" pathSelector;
     scrollLayout;
-    
+
     //button -l "Open Multi Path" -bgc 0.2 0.4 0.6 -c "openPath($pathIconList,1)";
-    rowLayout -nc 5;
-    //button -l "Add User Path" -w 100 -c "addPath($pathIconList,$pathTagList,$addPathTextField,$addTagTextField)";
-    $button1 = `button -ann "µã»÷Ìí¼Ó¹¤³ÌÄ¿Â¼,ÓÒ¼üÌí¼Ó¶îÍâµÄÄ¿Â¼" -l "Project Path" -w 100 -c "addPresetPath($pathTagList,$pathIconList,addTagToArray(getProjectPathFolder(`workspace -q -rd`)),2)" -bgc 0.1 0.35 0.55`;
+    rowLayout -nc 6;
+    button -l "Add User Path" -w 100 -c "addPath($pathIconList,$pathTagList,$addPathTextField,$addTagTextField)" -bgc 0.0 0.25 0.45;
+    $button1 = `button -ann "ç‚¹å‡»æ·»åŠ å·¥ç¨‹ç›®å½•,å³é”®æ·»åŠ é¢å¤–çš„ç›®å½•" -l "Project Path" -w 100 -c "addPresetPath($pathTagList,$pathIconList,addTagToArray(getProjectPathFolder(`workspace -q -rd`)),2)" -bgc 0.1 0.35 0.55`;
     buttonPopMenu($button1,$pathIconList,$pathTagList);
-    button -ann "±£´æµ½ÎÄ¼ş,ĞŞ¸ÄÁËÁĞ±íÇë¼ÇµÃ±£´æ,Èç¹ûÒªÔÚ±ğµÄµçÄÔÓÃ,¼ÇµÃ±¸·İÎÄ¼ş¡°userPath.path¡±µ½¶ÔÓ¦µÄÎ»ÖÃ" -l "Save to File" -w 100 -c "saveFile($pathTagList,$pathIconList,filename($filePath))" -bgc 0.2 0.45 0.65;
+    button -ann "ä¿å­˜åˆ°æ–‡ä»¶,ä¿®æ”¹äº†åˆ—è¡¨è¯·è®°å¾—ä¿å­˜,å¦‚æœè¦åœ¨åˆ«çš„ç”µè„‘ç”¨,è®°å¾—å¤‡ä»½æ–‡ä»¶â€œuserPath.pathâ€åˆ°å¯¹åº”çš„ä½ç½®" -l "Save to File" -w 100 -c "saveFile($pathTagList,$pathIconList,filename($filePath))" -bgc 0.2 0.45 0.65;
     text "Filename:";
     $filePath = `textField -w 75 -tx $file -en off`;
     //checkBox -l "Modify Lock" -v 1 -onc "textField -e -en off $filePath" -ofc "textField -e -en on $filePath";
     $checkBox1 = `checkBox -l "List Lock" -v 1 -cc "listLockMultiSelect($pathIconList,$pathTagList,$checkBox1)"`;
     setParent..;
-    
-    rowLayout -nc 2;
-    $addTagTextField = `textField -ann "ÕâÀïÌí¼Ó  Tag:±êÇ© °´Ğ¡¼üÅÌ»Ø³µÈ·ÈÏ" -w 121 -ec "addPath($pathIconList,$pathTagList,$addPathTextField,$addTagTextField)"`;
-    $addPathTextField = `textField -ann "ÕâÀïÌí¼Ó  Path:Â·¾¶ °´Ğ¡¼üÅÌ»Ø³µÈ·ÈÏ" -w 801 -ec "addPath($pathIconList,$pathTagList,$addPathTextField,$addTagTextField)"`;
+
+    rowLayout -nc 5;
+    $addTagTextField = `textField -ann "è¿™é‡Œæ·»åŠ   Tag:æ ‡ç­¾ æŒ‰å°é”®ç›˜å›è½¦ç¡®è®¤" -w 121 -ec "addPath($pathIconList,$pathTagList,$addPathTextField,$addTagTextField)"`;
+    separator -w 1;
+    checkBox -w 13;
+    separator -w 1;
+    $addPathTextField = `textField -ann "è¿™é‡Œæ·»åŠ   Path:è·¯å¾„ æŒ‰å°é”®ç›˜å›è½¦ç¡®è®¤" -w 801 -ec "addPath($pathIconList,$pathTagList,$addPathTextField,$addTagTextField)"`;
     setParent..;
-    
-    rowLayout -nc 2;
+
+    rowLayout -nc 3;
     frameLayout -l "Tag" -h 1000 ;
-    
+
     $pathTagList = `textScrollList -ams off -w 120 -dcc "openPath($pathIconList,0)"
                                                    -sc "selectListSync($pathTagList,$pathIconList)"
                                                    -dkc "deleteListItemSync($pathTagList,$pathIconList)"
                                                    -nbg on`;
     setParent..;
+
+
+    frameLayout -l " " -w 22 -h 1000 -bgc 0.27 0.27 0.27;
+    $iconList = `iconTextScrollList -w 22 -en off -bgc 0.27 0.27 0.27`;
+    setParent..;
+
+
     frameLayout -l "Path" -h 1000;
     $pathIconList = `textScrollList -ams off -w 800 -dcc "openPath($pathIconList,0)"
                                                     -sc "selectListSync($pathIconList,$pathTagList)"
                                                     -dkc "deleteListItemSync($pathIconList,$pathTagList)"
                                                     -nbg on`;
+
     setParent..;
     setParent..;
-    
+    string $popMenu = `popupMenu -p $pathIconList`;
+    menuItem -p $popMenu -c "fileWindow($pathIconList)" -l "Open Mel Window";
+    menuItem -p $popMenu -c "makeDir($iconList,$pathIconList)" -l "Make Dir";
     showWindow pathSelector;
-    
-    initializeList($pathIconList,$pathTagList,filename($filePath));
+
+    initializeList($pathIconList,$pathTagList,filename($filePath),$iconList);
 }
     //overridePathFile (addTagToArray(getProjectPathFolder())) ($appDir+$pathFilename);
     //print (readFromPathFile ($appDir+$pathFilename));
     //addPresetPath($pathIconList,$pathTagList,(readFromPathFile($appDir+$pathFilename)));
 
 pathSelectorManager;
+

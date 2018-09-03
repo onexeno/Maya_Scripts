@@ -1,4 +1,4 @@
-proc selType()
+global proc selType()
 {
     global string $allDesc[];
     
@@ -15,7 +15,7 @@ proc selType()
     select -r $nodes;
 }
 
-proc groupSelect()
+global proc groupSelect()
 {
     global string $allDesc[];
     if(`window -ex groupSelection`)

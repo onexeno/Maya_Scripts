@@ -33,3 +33,17 @@ abcPoint.getCoreType()
 abcPoint.getNumTimeSamplings()
 
 a = alembic.Abc.GetArchiveInfo(abcPoint)
+import shiboken2
+
+
+
+
+def polyCube(name,width,height,depth):
+    name = 'n | name'
+    width = 'w | width'
+    height = 'h | height'
+    depth = 'd | depth'
+    pass
+
+polyCube(height=100)
+

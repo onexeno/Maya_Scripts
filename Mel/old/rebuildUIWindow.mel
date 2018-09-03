@@ -11,30 +11,6 @@ global proc rebuildUI(int $switch)
     buildNewSceneUI;
 }
 
-global proc rebuildUIWindow()
-{
-    if(`window -ex rebuildUIWindow`)
-    {
-        deleteUI rebuildUIWindow;
-    }
-    
-    window -t "rebuildSettings" -sizeable off rebuildUIWindow;
-    columnLayout;
-    separator -h 2;
-    button -l "Delete Render Settings" -w 120 -h 65 -c "rebuildUI(1)" -bgc 0.5 0.3 0.25 -ann "Èç¹ûäÖÈ¾ÉèÖÃ´°¿ÚÏÔÊ¾²»³öÀ´¾ÍµãÕâ¸öÊÔÊÔ£¬Èç¹û»¹ÊÇ²»ĞĞ¾Í°Ñarnold²å¼ş¹ØµôÖØ¿ªmayaÊÔÊÔ";
-    separator -h 2;
-    button -l "Delete Render View" -w 120 -h 45 -c "deleteRenderView()" -bgc 0.4 0.2 0.15 -ann "Èç¹ûäÖÈ¾´°¿Ú¿Õ°×ÁË£¬¾ÍµãÕâ¸ö";
-    separator -h 5;
-    button -l "Delete Attribute Editor" -w 120 -h 25 -c "rebuildUI(0)" -bgc 0.3 0.3 0.3 -ann "Èç¹ûÊôĞÔÉèÖÃ´°¿Ú³ö´í¾ÍµãÕâ¸ö";
-    separator -h 5;
-    button -l "Fix RenderLayer BUG" -w 120 -h 25 -c "fixRenderLayerOutAdjustmentErrors" -bgc 0.3 0.3 0.3 -ann "Èç¹ûÇĞ»»äÖÈ¾²ã¶ª²ÄÖÊ¾ÍµãÕâ¸ö£¬É÷ÓÃ£¬ËäÈ»ÄÜĞŞ¸´£¬µ«ÊÇÃ¿Ò»²ãµÄ²ÄÖÊ¿ÉÄÜ»á´òÂÒ";
-    separator -h 2;
-    showWindow rebuildUIWindow;
-}
-
-rebuildUIWindow();
-
-
 global proc deleteRenderView()
 {
     string $scriptedPanels[] = `getPanel -type scriptedPanel`;
@@ -47,5 +23,46 @@ global proc deleteRenderView()
             break;
         }
     }
-    deleteUI -panel $temp;
+	
+    catchQuiet(`deleteUI -panel $temp`);
 }
+
+
+global proc rebuildUIWindow()
+{
+    if(`window -ex rebuildUIWindow`)
+    {
+        deleteUI rebuildUIWindow;
+    }
+    
+    window -t "rebuildSettings" -w 120 -h 175 -sizeable off rebuildUIWindow;
+    columnLayout;
+    separator -h 2;
+    button -l "Delete Render Settings" -w 120 -h 65 -c "rebuildUI(1)" -bgc 0.5 0.3 0.25 -ann "å¦‚æœæ¸²æŸ“è®¾ç½®çª—å£æ˜¾ç¤ºä¸å‡ºæ¥å°±ç‚¹è¿™ä¸ªè¯•è¯•ï¼Œå¦‚æœè¿˜æ˜¯ä¸è¡Œå°±æŠŠarnoldæ’ä»¶å…³æ‰é‡å¼€mayaè¯•è¯•";
+    separator -h 2;
+    button -l "Delete Render View" -w 120 -h 45 -c "deleteRenderView()" -bgc 0.4 0.2 0.15 -ann "å¦‚æœæ¸²æŸ“çª—å£ç©ºç™½äº†ï¼Œå°±ç‚¹è¿™ä¸ª";
+    separator -h 5;
+    button -l "Delete Attribute Editor" -enable off -w 120 -h 25 -c "rebuildUI(0)" -bgc 0.3 0.3 0.3 -ann "å¦‚æœå±æ€§è®¾ç½®çª—å£å‡ºé”™å°±ç‚¹è¿™ä¸ª";
+    separator -h 5;
+    button -l "Fix RenderLayer BUG" -w 120 -h 25 -c "fixRenderLayerOutAdjustmentErrors" -bgc 0.3 0.3 0.3 -ann "å¦‚æœåˆ‡æ¢æ¸²æŸ“å±‚ä¸¢æè´¨å°±ç‚¹è¿™ä¸ªï¼Œæ…ç”¨ï¼Œè™½ç„¶èƒ½ä¿®å¤ï¼Œä½†æ˜¯æ¯ä¸€å±‚çš„æè´¨å¯èƒ½ä¼šæ‰“ä¹±";
+    separator -h 2;
+    if(`window -ex rebuildUIWindow`)
+    {
+        windowPref -r rebuildUIWindow;
+    }
+    showWindow rebuildUIWindow;
+}
+
+rebuildUIWindow();
+
+
+
+
+
+
+
+
+
+
+
+//print (sort(`objectTypeUI -la`));

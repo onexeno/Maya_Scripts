@@ -1,0 +1,155 @@
+//YM_LightLinkShortcut - �ƹ����ӱ༭��
+global proc linkAllLight()
+{
+    string $shapeList[] = `ls -dag -s`;
+    string $allLightType[] = `listNodeTypes "light"`;
+    string $lightList[];
+    
+    for($temp in $shapeList)
+    {
+        if(stringArrayFind(`nodeType $temp`,0,$allLightType)>=0)
+        {
+            $lightList[size($lightList)] = $temp;
+        }
+    }
+    
+    string $objList[] = `ls -sl -dag -typ "mesh"`;
+    
+    for($obj in $objList)
+    {
+        for($light in $lightList)
+        {
+            lightlink -m -o $obj -l $light;
+        }
+    }
+    clear $lightList;
+}
+
+global proc breakAllLight()
+{
+    string $shapeList[] = `ls -dag -s`;
+    string $allLightType[] = `listNodeTypes "light"`;
+    string $lightList[];
+    
+    for($temp in $shapeList)
+    {
+        if(stringArrayFind(`nodeType $temp`,0,$allLightType)>=0)
+        {
+            $lightList[size($lightList)] = $temp;
+        }
+    }
+    string $objList[] = `ls -sl -dag -typ "mesh"`;
+    
+    for($obj in $objList)
+    {
+        for($light in $lightList)
+        {
+            lightlink -b -o $obj -l $light;
+        }
+    }
+    clear $lightList;
+}
+
+
+global proc linkSelLight()
+{
+    breakAllLight;
+    //string $allList[] = `ls -sl -dag -typ "light" -typ "mesh"`;
+    string $allList[] = `ls -sl -dag -s`;
+    string $meshList[];
+    string $lightList[];
+    string $allShapeList[] = `ls -dag -s`;
+    //print $allList;
+    string $allLightType[] = `listNodeTypes "light"`;
+    
+    for($obj in $allList)
+    {
+        if(`nodeType $obj` == "mesh")
+        {
+            $meshList[size($meshList)] = $obj;
+        }
+        else if(stringArrayFind(`nodeType $obj`,0,$allLightType)>=0)
+        {
+            $lightList[size($lightList)] = $obj;
+        }
+    }
+    
+    for($shape in $allShapeList)
+    {
+        for($light in $lightList)
+        {
+            lightlink -b -o $shape -l $light;
+        }
+    }
+    //print $meshList;
+    //print $lightList;
+    for($mesh in $meshList)
+    {
+        for($light in $lightList)
+        {
+            lightlink -m -o $mesh -l $light;
+        }
+    }
+    clear $meshList;
+    clear $lightList;
+}
+
+global proc string [] linkByLight()
+{
+    string $allLightType[] = `listNodeTypes "light"`;
+    string $lightlist[] = `ls -sl -dag -s`;
+    if(size($lightlist)>0)
+    {
+        if(stringArrayFind(`nodeType $lightlist[0]`,0,$allLightType))
+        {
+            string $linkedObj[] = `lightlink -q -shp off -sets off -light $lightlist[0]`; 
+            return $linkedObj;
+        }
+        else
+        {
+            return {};
+        }
+    }
+    else
+        return {};
+}
+
+global proc string [] linkByObject()
+{
+    string $objList[] = `ls -sl -dag -ni -s`;
+    string $temp[];
+    for($obj in $objList)
+    {
+        string $loopTemp[] = `lightlink -q -set off -shp off -object $obj`;
+        $temp = stringArrayCatenate($loopTemp,$temp);
+    }
+    return $temp;
+}
+
+global proc lightLinkShortcut()
+{
+    if(`window -ex lightLinkShortcut`)
+    {
+        deleteUI lightLinkShortcut;
+    }
+    
+    window -t "lightLinkShortcut_v0.1" -w 120 -bgc 0.1 0.1 0.1 lightLinkShortcut;
+    columnLayout;
+    text -w 120 -h 30 -l "CA Light Tool";
+    button -ann "閿熸枻鎷烽敓鏂ゆ嫹閿熸枻鎷烽敓鍙殑鐏櫢鎷�" -l "Link All" -w 120 -h 36 -c "linkAllLight" -bgc 0.3 0.1 0.1;
+    button -ann "閿熸枻鎷烽敓鏂ゆ嫹閿熸枻鎷锋鐗′箳閿熸枻鎷烽敓鏂ゆ嫹閿燂拷" -l "Remove All" -w 120 -h 36 -c "breakAllLight" -bgc 0.4 0.1 0.1;
+    button -ann "閿熸枻鎷烽敓鏂ゆ嫹閫夐敓鏂ゆ嫹閿熸枻鎷烽敓鏂ゆ嫹閿熼叺鐏厜锛岄敓鏂ゆ嫹閿熸枻鎷烽敓鏂ゆ嫹閿熸枻鎷烽敓鏂ゆ嫹涔掗敓鏂ゆ嫹閿熸枻鎷烽敓锟�" -l "Link Sel" -w 120 -h 55 -c "linkSelLight" -bgc 0.5 0.1 0.1;
+    separator -bgc 0.1 0.1 0.1 -h 5 -w 120;
+    rowLayout -nc 3;
+    button -ann "閿熸触寮€鐏櫢鎷烽敓鏂ゆ嫹閿熸枻鎷�" -l "Editor" -c "relationshipEditor(\"lightCentricLightLinking\",{},{})" -bgc 0.2 0.1 0.1 -w 38;
+    button -ann "閿熸枻鎷烽敓鏂ゆ嫹閿熸枻鎷烽敓鎺ョ伅鐧告嫹閫夐敓鏂ゆ嫹閿熸枻鎷烽敓鏂ゆ嫹" -l "L2O" -c "select -r (linkByLight())" -w 38 -bgc 0.3 0.1 0.1;
+    button -ann "閿熸枻鎷烽敓鏂ゆ嫹閿熸枻鎷烽敓鏂ゆ嫹閿熸枻鎷烽敓鏂ゆ嫹閫夐敓鏂ゆ嫹涔掗敓锟�" -l "O2L" -c "select -r (linkByObject())" -w 38 -bgc 0.4 0.1 0.1;
+    setParent..;
+    showWindow lightLinkShortcut;
+}
+
+lightLinkShortcut;
+
+
+
+

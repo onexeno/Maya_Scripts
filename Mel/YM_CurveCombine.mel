@@ -1,0 +1,17 @@
+//YM_CurveCombine - ÇúÏßºÏ²¢
+global proc combineShapes()
+{
+    string $curves[] = `ls -sl -tr`;                                            
+    makeIdentity -apply on -t 1 -r 1 -s 1 -n 0 -pn 1 $curves;       
+    refresh;                                                                          
+
+    string $curveShapes[] = `ls -sl -dag -s`;                              
+    string $combineGroup = `group -em -n "iconCurve"`;          
+    select -r $curveShapes;                                                    
+    select -add $combineGroup;                                             
+    parent -r -s;                                                                    
+    delete $curves;                                                               
+	select $combineGroup;
+}     
+
+combineShapes();

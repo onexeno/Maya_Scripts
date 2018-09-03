@@ -1,4 +1,4 @@
-
+//YM_SGManager - SGÌæ»»
 global string $relativeObjs[];
 
 global proc logTipWindow(int $number)

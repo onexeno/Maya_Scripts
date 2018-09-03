@@ -1,5 +1,4 @@
-//global string $xformLists[],$prunLists[];
-
+//YM_PolySmoothManager - 平滑节点管理
 global proc string [] list()
 {
     //global string $xformLists[],$prunLists[];
@@ -96,7 +95,7 @@ global proc polySmoothManager()
     //setParent..;
     if(`window -ex polySmoothManager`)
     {
-    windowPref -r polySmoothManager;
+    catchQuiet(`windowPref -r polySmoothManager`);
     }
     showWindow polySmoothManager;
 }

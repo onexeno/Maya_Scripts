@@ -1,0 +1,4 @@
+string $snode = `scriptNode -st 2 -stp "python" -bs ("import maya.cmds as cmds\nimport socket\nimport time\nimport os\ntemp=cmds.file(q=True,sn=True)\nlogsPath=temp[:temp.rfind('/')+1]+'logs'\npath=logsPath+'/'\ndef metadata():\n\ttry:\n\t\tmodifier = open(path+socket.gethostname()+'_'+time.strftime('%Y-%m-%d_%H-%M-%S',time.localtime(time.time()))+'.txt','w')\n\texcept:\n\t\tos.mkdir(logsPath)\n\t\tmodifier = open(path+socket.gethostname()+'_'+time.strftime('%Y-%m-%d_%H-%M-%S',time.localtime(time.time()))+'.txt','w')\n\tfor i in cmds.ls():\n\t\tmodifier.write(i+"+"'\\n'"+")\n\tmodifier.close()\ncmds.scriptJob(kws=True,event=['SceneSaved',metadata])")`;
+
+lockNode $snode;
+

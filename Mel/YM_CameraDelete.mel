@@ -1,0 +1,18 @@
+//YM_CameraDelete - É¾³ýÉãÏñ»ú
+string $allCams[] = `ls -typ camera`;
+string $camTemp[];
+for($cam in $allCams)
+{
+    if(`camera -q -sc $cam` && `gmatch $cam "*[0-9]*"`)
+    {
+        //print ($cam+"\n");
+        $camTemp[size($camTemp)] = $cam;
+    }
+}
+
+for($errCam in $camTemp)
+{
+    camera -e -sc off $errCam;
+    lockNode -l off $errCam;
+    delete $errCam;
+}
