@@ -6,19 +6,7 @@ global proc YM_Initialize(string $dir)
     float $mayaVersion = `getApplicationVersionAsFloat`;
     string $fileList[] = `getFileList -fld $dir`;
     string $errorList[];
-    /*for($file in $fileList)
-    {
-        if($file!="YM_Initialize.mel")
-        {
-            if(fileExtension($file)=="mel")
-            {
-                if (catchQuiet(eval("source " + "\"" + $dir + "/" + $file + "\""))<0)
-                    $errorList[size($errorList)] = $file;
-                else
-                    print("load mel: "+$dir+"/"+$file+" success!\n");
-            }
-        }
-    }*/
+
     if(!`shelfLayout -q -ex YM_Tools`)
     {
             addNewShelfTab YM_Tools;
@@ -31,11 +19,8 @@ global proc YM_Initialize(string $dir)
     shelfButton -l "Zen"
                 -h 34
                 -w 34 
-                -i ($dir+"/Icons/ACEs.bmp")
                 -p YM_Tools 
                 YM_Tools_Entry;
-    
-  
     
     for($file in $fileList)
     { 
@@ -50,14 +35,18 @@ global proc YM_Initialize(string $dir)
                     $fileInfo = $file;
                 }
                 if($mayaVersion>=2017)
-                {shelfButton -e -mi $fileInfo $command YM_Tools_Entry;}
-                else{
-                string $obj[] = `shelfButton -q -pma YM_Tools_Entry`;
-                menuItem -l $fileInfo -c $command -p $obj[0];}
+                {
+					shelfButton -e -mi $fileInfo $command YM_Tools_Entry;
+				}
+                else
+				{
+					string $obj[] = `shelfButton -q -pma YM_Tools_Entry`;
+					menuItem -l $fileInfo -c $command -p $obj[0];
+				}
             }
         }    
     }
-
+	shelfButton -e -i ($dir+"/Icons/ACEs.bmp") YM_Tools_Entry;
     saveShelf "YM_Tools" (`internalVar -ush`+"shelf_YM_Tools");
 }
 
@@ -69,21 +58,32 @@ global proc string getMelLine(string $file)
     fclose $pipe;
     return `substring $line 3 (size($line)-1)`;
 }
-string $path = whatIs("YM_Initialize");
-string $temp[];
 
-tokenize $path ": " $temp;
-string $dir;
-if(size($temp)>2)
+global proc intialize()
 {
-    $dir = dirname($temp[size($temp)-2] + ":" + $temp[size($temp)-1]);
-}
-else
-{
-    $dir = dirname($temp[size($temp)-1]);
+	string $path = whatIs("YM_Initialize");
+	string $temp[];
+
+	tokenize $path ":" $temp;
+	string $dir;
+	if(size($temp)>2)
+	{
+		$dir = dirname($temp[size($temp)-2] + ":" + $temp[size($temp)-1]);
+		if(substring($dir,1,1)==" ")
+		{
+			$dir = substring($dir,2,size($dir));
+		}
+	}
+	else
+	{
+		$dir = dirname($temp[size($temp)-1]);
+		if(substring($dir,1,1)==" ")
+		{
+			$dir = substring($dir,2,size($dir));
+		}
+	}
+
+	YM_Initialize($dir);
 }
 
-//print $dir;
-YM_Initialize($dir);
-
-//saveShelf "YM_Tools" (`internalVar -ush`+"shelf_YM_Tools");
+intialize();
