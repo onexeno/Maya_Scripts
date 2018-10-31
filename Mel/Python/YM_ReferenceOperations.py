@@ -1,14 +1,19 @@
+#-*- coding: utf-8 -*-
 import maya.cmds as cmds
 
 #cmds.ls(typ='reference') #Get reference node
 #cmds.file(q=True,r=True) #Get reference file
 
 def getLoadedReferenceList():
+    #获取已经加载的参考节点
     loadReferenceList = []
     for ref in cmds.ls(type='reference'):
-        if cmds.referenceQuery(ref,il=True):
-            loadReferenceList.append(ref)
-    return loadReferenceList
+        try:
+            if cmds.referenceQuery(ref,il=True):
+                loadReferenceList.append(ref)
+        except:
+            continue        
+    return loadReferenceList    
 
 def referenceCreateDisplayLayer(referenceList): 
     #根据参考创建对应的显示层
@@ -46,3 +51,25 @@ def referenceNodeTypeFilter(referenceNodesList,type):
         if(cmds.nodeType(referenceNode) == type):
             nodesList.append(referenceNode)
     return nodesList
+
+def referenceRootGroup(referenceNode):
+    if referenceNode is None:
+        return ''
+    
+    relativeNodes = cmds.referenceQuery(referenceNode,nodes=True)
+    fullPathName = []
+    for node in relativeNodes:
+        apName = cmds.ls(node,ap=True)
+        if cmds.nodeType(apName) == 'transform':
+            fullPathName.append(cmds.ls(node,ap=True)[0])
+
+    #transformNodes = [node for node in relativeNodes if cmds.nodeType(node)=='transform']
+    transformNodes = fullPathName
+    worldGroup = []
+    for transformNode in transformNodes:
+        #print transformNode
+        if cmds.listRelatives(transformNode,parent=True) is None and cmds.listRelatives(transformNode) is not None:
+            worldGroup.append(transformNode)
+        else:
+            continue
+    return worldGroup

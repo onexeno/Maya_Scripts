@@ -1,0 +1,219 @@
+global proc string [] createTexture2D(string $name,string $type)
+{
+    string $tex2D = `shadingNode -n ($name+"_placement2DTexture") -asUtility -ss "place2dTexture"`;
+    string $texNode = `shadingNode -n ($name) -asUtility -ss $type`;
+    if($type == "file")  //Only File Node has these attr, the system texture do not have these attr;
+    {
+        connectAttr -f ($tex2D+".coverage") ($texNode+".coverage");
+        connectAttr -f ($tex2D+".translateFrame") ($texNode+".translateFrame");
+        connectAttr -f ($tex2D+".rotateFrame") ($texNode+".rotateFrame");
+        connectAttr -f ($tex2D+".mirrorU") ($texNode+".mirrorU");
+        connectAttr -f ($tex2D+".mirrorV") ($texNode+".mirrorV");
+        connectAttr -f ($tex2D+".stagger") ($texNode+".stagger");
+        connectAttr -f ($tex2D+".wrapU") ($texNode+".wrapU");
+        connectAttr -f ($tex2D+".wrapV") ($texNode+".wrapV");
+        connectAttr -f ($tex2D+".repeatUV") ($texNode+".repeatUV");
+        connectAttr -f ($tex2D+".offset") ($texNode+".offset");
+        connectAttr -f ($tex2D+".rotateUV") ($texNode+".rotateUV");
+        connectAttr -f ($tex2D+".noiseUV") ($texNode+".noiseUV");
+        connectAttr -f ($tex2D+".vertexUvOne") ($texNode+".vertexUvOne");
+        connectAttr -f ($tex2D+".vertexUvTwo") ($texNode+".vertexUvTwo");
+        connectAttr -f ($tex2D+".vertexUvThree") ($texNode+".vertexUvThree");
+        connectAttr -f ($tex2D+".vertexCameraOne") ($texNode+".vertexCameraOne");
+    }
+
+    connectAttr ($tex2D+".outUV") ($texNode+".uv");
+    connectAttr ($tex2D+".outUvFilterSize") ($texNode+".uvFilterSize");
+    return {$texNode,$tex2D};
+}
+
+global proc createAOV(string $aovList[])
+{
+    if (`getAttr "defaultRenderGlobals.currentRenderer"` != "arnold")
+        setAttr "defaultRenderGlobals.currentRenderer" -type "string" "arnold";
+    
+    for($aov in $aovList)
+    {
+        string $node = `createNode -ss "aiAOV" -n ("aiAOV_" + $aov)`;
+        setAttr -type "string" ($node+".name") ($aov);
+        
+        connectAttr -f -na ($node + ".message") ("defaultArnoldRenderOptions.aovList");
+        connectAttr -f ("defaultArnoldFilter.message") ($node + ".outputs[0].filter");
+        connectAttr -f ("defaultArnoldDriver.message") ($node + ".outputs[0].driver");
+    }
+}
+
+//R is Background, G is Highlight Mask, B is Shadow Mask
+global proc makeMaterialNetwork(string $sglist[])
+{
+    string $fileName = basename(`file -q -sn`,".m[a|b]");
+    string $temp[];
+    tokenize $fileName "_" $temp;
+
+    string $charName = $temp[1];
+
+    string $gSamplerLambert = `shadingNode -as -ss "lambert" -n ($charName+"_Global_View_Sampler")`;
+    string $gSamplerLuminance = `shadingNode -au -ss "surfaceLuminance" -n ($charName+"_Global_Render_Sampler")`;
+    setAttr ($gSamplerLambert+".diffuse") 1.0;
+    setAttr ($gSamplerLambert+".colorR") 1.0;
+    setAttr ($gSamplerLambert+".colorG") 1.0;
+    setAttr ($gSamplerLambert+".colorB") 1.0;
+    
+    //------------------------------------------- Create Material Network -------------------------------------------------
+    for($relativeSG in $sglist)
+    {
+        string $component = ($charName + "_" + $relativeSG + "_");
+
+        string $existSurfaceShader = `connectionInfo -sfd ($relativeSG+".surfaceShader")`;
+        string $existaiSurfaceShader = `connectionInfo -sfd ($relativeSG+".aiSurfaceShader")`;
+
+        if(size($existSurfaceShader))
+        {
+            disconnectAttr $existSurfaceShader ($relativeSG + ".surfaceShader");
+        }
+        if(size($existaiSurfaceShader))
+        {
+            disconnectAttr $existaiSurfaceShader ($relativeSG + ".aiSurfaceShader");
+        }
+
+        string $viewMaterial = `shadingNode -as -ss "surfaceShader" -n ($component + "View_Material")`;
+        connectAttr -f ($viewMaterial + ".outColor") ($relativeSG + ".surfaceShader");
+
+        string $renderMaterial = `shadingNode -as -ss "surfaceShader" -n ($component + "Render_Material")`;
+        connectAttr -f ($renderMaterial + ".outColor") ($relativeSG + ".aiSurfaceShader");
+
+        string $lightColorTex[] = createTexture2D(($component + "Light_Color_Tex"),"file");
+        string $darkColorTex[] = createTexture2D(($component + "Dark_Color_Tex"),"file");
+        string $lineTex[] = createTexture2D(($component + "Line_Tex"),"file");
+        string $drawShadowMaskTex[] = createTexture2D(($component + "Draw_Shadow_Mask_Tex"),"file");
+        string $extraTex[];
+        if ($relativeSG == "Hair" || $relativeSG == "TF" || $relativeSG == "Toufa")
+        {
+            $extraTex = createTexture2D(($component + "HightLight_Tex"),"file");
+        }
+
+        //View Network -----------------------------------------------------------------------------------------
+        
+
+        //Render Network ---------------------------------------------------------------------------------------
+        string $renderLayerTex = `shadingNode -au -ss "layeredTexture" -n ($component + "Render_LayerTexture")`;
+        connectAttr -f ($renderLayerTex + ".outColor") ($renderMaterial + ".outColor");
+
+        string $shadowLayerTex = `shadingNode -au -ss "layeredTexture" -n ($component + "Shadow_LayerTexture")`;
+
+        string $drawShadow_Ramp = `shadingNode -at -ss "ramp" -n ($component + "DrawShadow_Mask")`;
+        setAttr ($drawShadow_Ramp + ".colorEntryList[0].color") 0.0 0.0 0.0;
+        setAttr ($drawShadow_Ramp + ".colorEntryList[1].color") 1.0 1.0 1.0;
+        connectAttr -f ($drawShadowMaskTex[0] + ".outColorB") ($drawShadow_Ramp+".vCoord");
+        connectAttr -f ($drawShadow_Ramp + ".outColor") ($shadowLayerTex + ".inputs[0].color");
+
+        string $realShadow_Ramp = `shadingNode -at -ss "ramp" -n ($component + "RealShadow_Mask")`;
+        connectAttr -f ($gSamplerLuminance + ".outValue") ($realShadow_Ramp + ".vCoord");
+        setAttr ($realShadow_Ramp + ".colorEntryList[0].color") 0.0 0.0 0.0;
+        setAttr ($realShadow_Ramp + ".colorEntryList[1].color") 1.0 1.0 1.0;
+        setAttr ($realShadow_Ramp + ".colorEntryList[1].position") 0.2;
+        setAttr ($realShadow_Ramp + ".interpolation") 0;
+        connectAttr -f ($realShadow_Ramp + ".outColor") ($shadowLayerTex + ".inputs[1].color");
+        
+        setAttr ($shadowLayerTex + ".inputs[0].blendMode") 8;
+        setAttr ($shadowLayerTex + ".inputs[1].blendMode") 1;
+
+        string $extraRamp = '';
+
+        if(size($extraTex) == 0)
+        {
+            connectAttr -f ($lineTex[0]+".outColor") ($renderLayerTex + ".inputs[0].color");
+            setAttr ($renderLayerTex+".inputs[0].blendMode") 6;
+            connectAttr -f ($lightColorTex[0]+".outColor") ($renderLayerTex + ".inputs[2].color");
+            setAttr ($renderLayerTex+".inputs[1].blendMode") 1;
+            connectAttr -f ($darkColorTex[0]+".outColor") ($renderLayerTex + ".inputs[1].color");
+            setAttr ($renderLayerTex+".inputs[2].blendMode") 1;
+            connectAttr -f ($shadowLayerTex + ".outColorR") ($renderLayerTex + ".inputs[1].alpha");
+        }
+        else
+        {   
+            connectAttr -f ($lineTex[0] + ".outColor") ($renderLayerTex + ".inputs[0].color");
+            setAttr ($renderLayerTex + ".inputs[0].blendMode") 6;
+            $extraRamp = `shadingNode -at -ss "ramp" -n ($component + "extraTex_Ramp")`;
+            connectAttr -f ($extraTex[0] + ".outColor") ($renderLayerTex + ".inputs[1].color");
+            setAttr ($renderLayerTex + ".inputs[1].blendMode") 1;
+            
+            connectAttr -f ($extraTex[0] + ".outColorG") ($extraRamp + ".vCoord");
+            connectAttr -f ($extraRamp + ".outColor") ($renderLayerTex + ".inputs[1].color");
+            connectAttr -f ($extraRamp + ".outColorG") ($renderLayerTex + ".inputs[1].alpha");
+
+            connectAttr -f ($lightColorTex[0] + ".outColor") ($renderLayerTex + ".inputs[3].color");
+            setAttr ($renderLayerTex + ".inputs[3].blendMode") 1;
+            connectAttr -f ($darkColorTex[0] + ".outColor") ($renderLayerTex + ".inputs[2].color");
+            setAttr ($renderLayerTex + ".inputs[2].blendMode") 1;
+            connectAttr -f ($shadowLayerTex + ".outColorR") ($renderLayerTex + ".inputs[2].alpha");
+        }
+        
+        string $lineRamp = `shadingNode -at -ss "ramp" -n ($component + "Line_AOV_Ramp")`;
+        connectAttr -f ($lineTex[0] + ".outColorR") ($lineRamp + ".vCoord");
+        setAttr ($lineRamp + ".colorEntryList[0].color") 1.0 0.0 0.0;
+        setAttr ($lineRamp + ".colorEntryList[1].color") 0.0 0.0 0.0;
+
+        string $shadowPlusLayer = `shadingNode - at -ss "layeredTexture" -n ($component + "Shadow_AOV_LayeredTexture")`;
+        connectAttr -f ($drawShadow_Ramp + ".outColorR") ($shadowPlusLayer + ".inputs[0].alpha");
+        connectAttr -f ($realShadow_Ramp + ".outColorR") ($shadowPlusLayer + ".inputs[1].alpha");
+        setAttr ($shadowPlusLayer + ".inputs[0].color") 1.0 0.0 0.0;
+        setAttr ($shadowPlusLayer + ".inputs[1].color") 0.0 1.0 0.0;
+        setAttr ($shadowPlusLayer + ".inputs[0].blendMode") 4;
+
+        
+        
+        int $aovIndexs[] = `getAttr -mi ($relativeSG+".aiCustomAOVs")`;
+        for($i in $aovIndexs)
+        {
+            if (`getAttr ($relativeSG + ".aiCustomAOVs[" + $i + "].aovName")` == "Light_Color")
+                connectAttr -f ($lightColorTex[0] + ".outColor") ($relativeSG + ".aiCustomAOVs[" + $i + "].aovInput");
+
+            if (`getAttr ($relativeSG + ".aiCustomAOVs[" + $i + "].aovName")` == "Dark_Color")
+                connectAttr -f ($darkColorTex[0] + ".outColor") ($relativeSG + ".aiCustomAOVs[" + $i + "].aovInput");
+
+            if (`getAttr ($relativeSG + ".aiCustomAOVs[" + $i + "].aovName")` == "Line_Draw")
+                connectAttr -f ($lineRamp + ".outColor") ($relativeSG + ".aiCustomAOVs[" + $i + "].aovInput");
+
+            if (`getAttr ($relativeSG + ".aiCustomAOVs[" + $i + "].aovName")` == "HighLight_Draw" && size($extraTex) != 0)
+                connectAttr -f ($extraRamp + ".outColor") ($relativeSG + ".aiCustomAOVs[" + $i + "].aovInput");
+
+            if (`getAttr ($relativeSG + ".aiCustomAOVs[" + $i + "].aovName")` == "Shadow_Mask")
+                connectAttr -f ($shadowPlusLayer + ".outColor") ($relativeSG + ".aiCustomAOVs[" + $i + "].aovInput");
+        }
+        //Draw shadow mask use as alpha
+        
+    }
+    //------------------------------------------- Create Material Network -------------------------------------------------
+}
+
+if (!`pluginInfo -q -l "mtoa"`)
+    loadPlugin "mtoa";
+
+string $objList[] = `ls -sl -dag -ni -type "mesh"`;
+string $relativeSGList[];
+clear $relativeSGList;
+
+for($obj in $objList)
+{   
+    for($sg in `listConnections -type "shadingEngine" $obj`)
+    {
+        $relativeSGList[size($relativeSGList)] = $sg;
+    }
+}
+
+$relativeSGList = stringArrayRemoveDuplicates($relativeSGList);
+
+string $aovList[] = {"Light_Color",
+                     "Dark_Color",
+                     "Line_Draw",
+                     "HighLight_Draw",
+                     "Shadow_Mask",
+                     "Prop_Mask",
+                     "Object_Mask"};
+createAOV($aovList);
+
+
+if(size($relativeSGList) > 0)
+    makeMaterialNetwork($relativeSGList,$aovList);
+

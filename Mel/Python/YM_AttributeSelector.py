@@ -2,77 +2,79 @@ import maya.cmds as cmds
 import maya.mel as mel
 import re
 #Directly use the listAttr command flags
-attrFlags = ['array',
-             'connectable',
-             'caching',
-             'channelBox',
-             'changedSinceFileOpen',
-             'extension',
-             'fromPlugin',
-             'hasData',
-             'hasNullData',
-             'inUse',
-             'keyable',
-             'locked',
-             'leaf',
-             'multi',
-             'read',
-             'ramp',
-             'readOnly',
-             'scalar',
-             'scalarAndArray',
-             'settable',
-             'shortNames',
-             'unlocked',
-             'userDefined',
-             'usedAsFilename',
-             'visible',
-             'write']
 
-global_YM_Attribute_Left_List = []
-global_YM_Attribute_Right_List = []
+def YM_AttributeUI():
+    attrFlags = ['array',
+                'connectable',
+                'caching',
+                'channelBox',
+                'changedSinceFileOpen',
+                'extension',
+                'fromPlugin',
+                'hasData',
+                'hasNullData',
+                'inUse',
+                'keyable',
+                'locked',
+                'leaf',
+                'multi',
+                'read',
+                'ramp',
+                'readOnly',
+                'scalar',
+                'scalarAndArray',
+                'settable',
+                'shortNames',
+                'unlocked',
+                'userDefined',
+                'usedAsFilename',
+                'visible',
+                'write']
 
-if cmds.window('AttributeList',ex=True):
-    cmds.deleteUI('AttributeList')
+    global_YM_Attribute_Left_List = []
+    global_YM_Attribute_Right_List = []
 
-checkerList = []    
-    
-cmds.window('AttributeList',w=600,h=450,t='AttributeListWindow')
-cmds.rowLayout(nc=4)
-cmds.columnLayout('CheckerList')
-cmds.rowLayout(nc=2)
-cmds.textField()
-cmds.button(l='<<')
-cmds.setParent(u=True)
-cmds.setParent(u=True)
+    if cmds.window('AttributeList',ex=True):
+        cmds.deleteUI('AttributeList')
 
-cmds.columnLayout()
-cmds.textField('YM_AttributeFilter_Left',w=300)
-cmds.textScrollList('YM_AttributeList_Left',ams=True,w=300,h=450)
-cmds.setParent(u=True)
+    checkerList = []    
+        
+    cmds.window('AttributeList',w=600,h=450,t='AttributeListWindow')
+    cmds.rowLayout(nc=4)
+    cmds.columnLayout('CheckerList')
+    cmds.rowLayout(nc=2)
+    cmds.textField()
+    cmds.button(l='<<')
+    cmds.setParent(u=True)
+    cmds.setParent(u=True)
 
-cmds.columnLayout()
-cmds.button('YM_Attribute_Left_Button',l='>>')
-cmds.separator(h=10)
-cmds.button('YM_Attribute_Right_Button',l='<<')
-cmds.setParent(u=True)
+    cmds.columnLayout()
+    cmds.textField('YM_AttributeFilter_Left',w=300)
+    cmds.textScrollList('YM_AttributeList_Left',ams=True,w=300,h=450)
+    cmds.setParent(u=True)
 
-cmds.columnLayout()
-cmds.textField('YM_AttributeFilter_Right',w=300)
-cmds.textScrollList('YM_AttributeList_Right',ams=True,w=300,h=450)
-cmds.setParent(u=True)
+    cmds.columnLayout()
+    cmds.button('YM_Attribute_Left_Button',l='>>')
+    cmds.separator(h=10)
+    cmds.button('YM_Attribute_Right_Button',l='<<')
+    cmds.setParent(u=True)
 
-cmds.button('YM_Attribute_Left_Button',e=True,c=lambda x: updateList('YM_AttributeList_Right','YM_AttributeList_Left','YM_AttributeFilter_Left'))
-cmds.button('YM_Attribute_Right_Button',e=True,c=lambda x: updateList('YM_AttributeList_Left','YM_AttributeList_Right','YM_AttributeFilter_Right'))
-cmds.textField('YM_AttributeFilter_Left',e=True,tcc=lambda x:filterList('YM_AttributeFilter_Left','YM_AttributeList_Left'))
-cmds.textField('YM_AttributeFilter_Right',e=True,tcc=lambda x:filterList('YM_AttributeFilter_Right','YM_AttributeList_Right'))
-cmds.showWindow('AttributeList')
+    cmds.columnLayout()
+    cmds.textField('YM_AttributeFilter_Right',w=300)
+    cmds.textScrollList('YM_AttributeList_Right',ams=True,w=300,h=450)
+    cmds.setParent(u=True)
 
-for attrFlag in attrFlags:
-    checkerList.append(cmds.checkBox(l=attrFlag,parent='CheckerList'))
+    cmds.button('YM_Attribute_Left_Button',e=True,c=lambda x: updateList('YM_AttributeList_Right','YM_AttributeList_Left','YM_AttributeFilter_Left'))
+    cmds.button('YM_Attribute_Right_Button',e=True,c=lambda x: updateList('YM_AttributeList_Left','YM_AttributeList_Right','YM_AttributeFilter_Right'))
+    cmds.textField('YM_AttributeFilter_Left',e=True,tcc=lambda x:filterList('YM_AttributeFilter_Left','YM_AttributeList_Left'))
+    cmds.textField('YM_AttributeFilter_Right',e=True,tcc=lambda x:filterList('YM_AttributeFilter_Right','YM_AttributeList_Right'))
+    cmds.showWindow('AttributeList')
 
-for checker in checkerList:
-    cmds.checkBox(checker,e=True,cc=lambda x:checkListCheck(checkerList))
+    for attrFlag in attrFlags:
+        checkerList.append(cmds.checkBox(l=attrFlag,parent='CheckerList'))
+
+    for checker in checkerList:
+        cmds.checkBox(checker,e=True,cc=lambda x:checkListCheck(checkerList))
     
 def checkListCheck(checkerList):
     checkLabel = []
@@ -167,7 +169,7 @@ def filterList(filterField,targetList):
 def getFilteredAttributes():
     global global_YM_Attribute_Right_List
     if global_YM_Attribute_Right_List is not None:
-        
+        pass
     else:
         pass
 
@@ -210,8 +212,4 @@ def attributeInfoWindow(attribute,node):
     cmds.showWindow('YM_AttributeInfoWindow')
 
 
-def attributeDelete(attribute,node):
-    
-
-attributeInfoWindow('translateX','pCube1')
 

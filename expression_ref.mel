@@ -1,0 +1,28 @@
+string $curves[] = {"curve2","curve3","curve4","curve5"};
+int $cvNums = getAttr("curve1.spans") + getAttr("curve1.degree");
+int $tCvNums = getAttr("curve2.spans") + getAttr("curve2.degree") - 1;
+
+global vector $allCVs[];
+
+int $stime = 1;
+int $eTime = 100;
+int $frame = `currentTime -q`;
+
+if(`currentTime -q`<=$stime)
+{
+	clear $allCVs;
+}
+
+for($i=0;$i<$cvNums;$i++)
+{
+	$allCVs[size($allCVs)] = `xform -q -ws -t ("curve1.cv["+$i+"]")`;
+}
+
+for($i=0;$i<size($curves);$i++)
+{
+	for($cv=0;$cv<=$tCvNums;$cv++)
+	{
+		vector $temp = $allCVs[int(clamp(0,$eTime*$cvNums,$frame-$cv-$stime))*$cvNums+$i];
+		xform -ws -t ($temp.x) ($temp.y) ($temp.z) ($curves[$i]+".cv["+$cv+"]");
+	}
+}

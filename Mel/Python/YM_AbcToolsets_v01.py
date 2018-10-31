@@ -249,14 +249,7 @@ def singleFileExportPath():
 #get the world group
 def getWorldGroup(referenceNode):
     relativeNodes = cmds.referenceQuery(referenceNode,nodes=True)
-    fullPathName = []
-    for node in relativeNodes:
-        apName = cmds.ls(node,ap=True)
-        if cmds.nodeType(apName) == 'transform':
-            fullPathName.append(cmds.ls(node,ap=True))
-
-    #transformNodes = [node for node in relativeNodes if cmds.nodeType(node)=='transform']
-    transformNodes = fullPathName
+    transformNodes = [node for node in relativeNodes if cmds.nodeType(node)=='transform']
     worldGroup = []
     for transformNode in transformNodes:
         #print transformNode
@@ -290,29 +283,23 @@ def exportArgumentsCreator():
         argString = ''
         #获取节点下的最高父级transform节点
         worldGroupList = getWorldGroup(referenceNode)
-        matchFilterGroups = []
-        for worldGroup in worldGroupList:
-            #验证transform节点结尾{"MOD","Model","Geometry"}等
+        if len(worldGroupList)==1:
             filterList = cmds.textScrollList('YM_ABC_Export_Filter_List',q=True,ai=True)
             if filterList is None:
                 cmds.error('No filter group founded, Please enter one least filter to the group field')
                 return
             else:
+                #验证transform节点结尾{"MOD","Model","Geometry"}等
                 for filterItem in filterList:
-                    filterMatch = re.search(filterItem,str(worldGroup[0]))
+                    filterMatch = re.search(filterItem,worldGroupList[0])
                     if filterMatch is None:
                         continue
                     else:
-                        matchFilterGroups.append(str(worldGroup[0]))
-        if matchFilterGroups is None:
-            cmds.warning('No match root group found')
-            return
-        
-        for matchFilterGroup in matchFilterGroups:
-            #对每个参考节点生成一个root *_MOD字符串
-            argString = '-root |' + matchFilterGroup + ' '
-            argmentsString += '-root |' + matchFilterGroup + ' '
-
+                        #对每个参考节点生成一个root *_MOD字符串
+                        argString = '-root |' + worldGroupList[0]
+                        argmentsString += '-root |' + worldGroupList[0] + ' '
+        else:
+            cmds.warning(referenceNode+' has no root group')
         if len(argString)==0:
             continue
         else:
@@ -328,7 +315,7 @@ def exportArgumentsCreator():
 
         argmentsList.append(argString)
 
-        #print argmentsList
+    #print argmentsList
         #return argmentsList
         #找到一个即跳出，找到多个即警报，跳出函数
     if cmds.radioButton('YM_ABC_Export_Options_MultipleFile',q=True,sl=True):
@@ -341,31 +328,29 @@ def exportArgumentsCreator():
         currentPath = cmds.file(q=True,loc=True)
         currentDir = os.path.dirname(currentPath)
         currentFile = os.path.basename(currentPath)
-        filePath = cmds.textField('YM_ABC_Export_Path_Field',q=True,tx=True)
-        #argmentsString += ' -file ' + currentDir + '/ABC/' + currentFile + '.abc'
-        argmentsString += ' -file ' + filePath
+        
+        argmentsString += ' -file ' + currentDir + '/ABC/' + currentFile + '.abc'
         #print argmentsString
-        return [argmentsString]
+        return argmentsString
         #同上
         #将多个root *MOD字符串合并为一个
         #路径使用Path_Field中的字符串
 
 def exportAbc():
-    
-    if os.path.exists(os.path.dirname(cmds.file(q=True,loc=True))+'/ABC') is False:
-        os.mkdir(os.path.dirname(cmds.file(q=True,loc=True))+'/ABC')
-
     argments = exportArgumentsCreator()
-    if argments is not None:
+
+    if type(argments) is list:
         for argment in argments:
             try:
                 cmds.AbcExport(j=argment)
             except:
                 cmds.warning(argment+' is error,check the scene!')
                 continue
-    else:
-        cmds.warning('No match object found!')
-        return
+    elif type(argments) is str:
+        try:
+            cmds.AbcExport(j=argment)
+        except:
+            cmds.warning('Export Error Occurs, Check the scene')
 
     #flags = getExportFlags()
     #cmds.AbcExport(j='')

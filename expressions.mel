@@ -1,0 +1,115 @@
+global int $allCVCount;
+$allCVCount = 0;
+
+global proc genCurveTail()
+{
+    global int $allCVCount;
+	string $curves[] = `ls -sl -tr`;
+	if(size($curves)==1)
+	{
+		if(nodeType(`listRelatives -s $curves[0]`) == "nurbsCurve")
+		{
+			int $curveNum = getAttr($curves[0]+".spans") + getAttr($curves[0]+".degree");
+			int $frameNum = `intSliderGrp -q -v TAIL_INT_FIELD`;
+			string $newGroup = `group -em -n "Tail_Group"`;
+			string $curveTemp[];
+			clear $curveTemp;
+			for($i=0;$i<$curveNum;$i++)
+			{
+				vector $temp = `xform -q -ws -t ($curves[0]+".cv["+$i+"]")`;
+				string $newCurve = eval(curveEval($temp,$frameNum));
+				parent $newCurve $newGroup;
+				$curveTemp[size($curveTemp)] = $newCurve;
+			}
+			string $loftSurfaces[] = `loft -ch 1 -u 1 -c 0 -ar 1 -d 3 -ss 1 -rn 0 -po 0 -rsn true $curveTemp`;
+			parent $loftSurfaces[0] $newGroup;
+			string $expr = genExpression($curves[0],$curveTemp);
+			expression -s $expr -o $newGroup -n "Tail_Expr_1";
+			$allCVCount+=1;
+		}
+	}
+	else
+	{
+		warning("Please select 1 nurbsCurve");
+	}
+}
+
+
+global proc string curveEval(vector $original,int $counts)
+{
+
+    string $curveGenCode = "curve -d 3 ";
+    string $x = $original.x;
+    string $y = $original.y;
+    string $z = $original.z;
+    
+    for($cCount=0;$cCount<$counts;$cCount++)
+    {
+        $curveGenCode += " -p " + $x + " " + $y + " " + $z + " ";
+    }
+
+    return ($curveGenCode);
+}
+
+global proc string genExpression(string $target, string $objects[])
+{
+    string $objTemps;
+    global int $allCVCount;
+    string $sallCVCount = $allCVCount;
+    for($object in $objects)
+    {
+        $objTemps += "\"" + $object +"\",";
+    }    
+	if(!`attributeQuery -node $target -ex "start_Time"`)
+	{
+		addAttr -ln "start_Time" -dv 0 $target;
+		setAttr -e -keyable true ($target+".start_Time");
+	}
+    string $stime = `playbackOptions -q -min`;
+    string $etime = `playbackOptions -q -max`;
+	setAttr ($target+".start_Time") `playbackOptions -q -min`;
+	
+    $objTemps = `substring $objTemps 1 (size($objTemps)-1)`;
+    string $objs = "string $curves[] = {" + $objTemps + "};\n";
+    string $mainBody = "int $cvNums = " + $target + ".spans + "  + $target+".degree"+";\n" +
+                       "int $tCvNums = " + $objects[0] +".spans + " + $objects[0]+".degree"+"-1;\n" +
+					   "//-----------The Global Variable "+$allCVCount +" is not unique, warning-----------\n"+
+                       "global vector $allCVs_"+$sallCVCount+"[];\n"+
+                       "int $stime = `getAttr ("+"\""+$target+".start_Time"+"\""+")` ;\n"+
+                       "int $etime = " + $etime +";\n"+
+                       "int $frame = `currentTime -q`;\n"+
+                       "if($frame<=$stime)\n"+
+                       "{\n"+
+                       "\tclear $allCVs_"+$sallCVCount+";\n"+  
+                       "}\n"+
+                       "for($i=0;$i<$cvNums;$i++)\n"+
+                       "{\n"+
+                       "\t$allCVs_"+$sallCVCount+"[size($allCVs_"+$sallCVCount+")] = `xform -q -ws -t (" +"\""+$target+".cv["+"\""+"+$i"+"+\"]"+"\""+")`;\n"+
+                       "}\n"+    
+                       "for($i=0;$i<size($curves);$i++)\n"+
+                       "{\n"+
+                       "\tfor($cv=0;$cv<=$tCvNums;$cv++)\n"+
+                       "\t{\n"+
+                       "\t\tvector $temp = $allCVs_"+$sallCVCount+"[int(clamp(0,$etime*$cvNums,$frame-$cv-$stime))*$cvNums+$i];\n"+
+                       "\t\txform -ws -t ($temp.x) ($temp.y) ($temp.z) ($curves[$i]+"+"\""+".cv["+"\"+$cv"+"+\"]"+"\""+");\n"+
+                       "\t}\n"+
+                       "}";
+    return $objs + $mainBody;
+}
+
+
+global proc tailGenWindow()
+{
+    if(`window -ex TAIL_CREATOR`)
+        deleteUI TAIL_CREATOR;
+    
+    window -t "Tail Creator" -w 500 -h 75 -s 0 TAIL_CREATOR;
+    rowLayout -h 75 -w 500 -nc 2 TAIL_ROWLAYOUT;
+    string $isg1 = `intSliderGrp -l "Counts" -min 0 -max 10 -fmn 0 -fmx 100 -f on -ss 1 -w 500 TAIL_INT_FIELD`;
+    rowLayout -e -cl1 "left"
+                 -cat 1 "left" -100
+                 TAIL_ROWLAYOUT;
+    string $ibt1 = `button -w 90 -h 60 -l "Create" -c "genCurveTail()"`;
+    showWindow TAIL_CREATOR;
+}
+
