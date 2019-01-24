@@ -1,0 +1,56 @@
+global proc AOVDeletor()
+{
+    if (`window -ex AOVATTR_DELETE`)
+        deleteUI AOVATTR_DELETE;
+        
+    window -t "AOV_Attr_Deletor" -w 400 -h 200 AOVATTR_DELETE;
+    columnLayout;
+    rowLayout -nc 5;
+    text -l "From";
+    textField FROMVALUE;
+    text -l "To";
+    textField TOVALUE;
+    button -l "Delete" -w 60 -c "removeAOVAttr()";
+    setParent..;
+    
+    showWindow AOVATTR_DELETE;
+}
+
+
+global proc string padZero(int $number,int $zeroNum)
+{
+    string $sCount = $zeroNum;
+    string $sNumber = $number;
+    int $size = $zeroNum - size($sNumber);
+    string $formatNum;
+    for($i=0;$i<$size;$i++)
+    {
+        $formatNum += "0";
+    }
+    $formatNum += $sNumber;
+    return $formatNum;
+}
+
+global proc removeAOVAttr()
+{
+    string $selObjs[] = `ls -sl -dag`;
+
+    int $from = `textField -q -tx FROMVALUE`;
+    int $to = `textField -q -tx TOVALUE`;
+    string $constant = "mtoa_constant_Id_";
+    
+    for($obj in $selObjs)
+    {
+        for($i=$from;$i<=$to;$i++)
+        {
+            if (`attributeExists ($constant + padZero($i,3)) $obj`)
+            {
+                deleteAttr -at ($constant + padZero($i,3)) $obj;
+            }
+        }
+    }
+}
+
+
+
+

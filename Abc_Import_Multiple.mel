@@ -1,0 +1,131 @@
+global proc ABC_MainWindow()
+{
+    if (`window -ex ABC_Import_Multiple`)
+        deleteUI ABC_Import_Multiple;
+
+    window -t "ABC_Import_Multiple_Window" -w 400 -h 100 ABC_Import_Multiple;
+    columnLayout;
+
+    rowLayout -nc 5;
+    button -l "Get_By_Selected" -w 90 -bgc 0.0 0.125 0.25 Get_Button;
+    button -l "Import ABCs" -w 90 -bgc 0.0 0.125 0.25 Import_Button;
+    intField -w 90 -v 0 ABC_Import_Counts;
+    radioCollection;
+    radioButton -ann "随机" -l "Rand" -sl Random_Import;
+    radioButton -ann "顺序" -l "Seq" Sequence_Import;
+    setParent..;
+    
+    rowLayout -nc 3;
+    button -l "Sources" -w 90 -bgc 0.0 0.175 0.325 Source_Button;
+    button -l "Align" -w 90 -bgc 0.0 0.175 0.325 Target_Button;
+    checkBox -l "Rotation" -v 0 Rotation_Align;
+    setParent..;
+
+    rowLayout -nc 4;
+    button -l "Set Offset" -w 90 -bgc 0.325 0.0 0.175 Offset_Set;
+    intField -w 90 -v 0 Offset_From;
+    intField -w 90 -v 0 Offset_To;
+    intField -w 90 -v 0 Offset_Base;
+    setParent..;
+
+    rowLayout -nc 3;
+    button -l "Set Speed" -w 90 -bgc 0.45 0.0 0.125 Speed_Set;
+    floatField -w 90 -v 1.0 Speed_From;
+    floatField -w 90 -v 1.0 Speed_To;
+
+    showWindow ABC_Import_Multiple;
+
+    button -e -ann "选择对象，获取数量" -c "getSelects()" Get_Button;
+    button -e -ann "根据数量导入Abc" -c "selectABCs()" Import_Button;
+    button -e -ann "选择要对齐到的对象，批量" -c "saveSource()" Source_Button;
+    button -e -ann "先点sources，再对齐" -c "alignABCs()" Target_Button;
+    button -e -ann "设置ABC节点时间偏移随机，第一格为From，第二格为To，第三格为总体偏移" -c "setOffset()" Offset_Set;
+    button -e -ann "设置ABC节点时间缩放随机，同上" -c "setSpeed()" Speed_Set;
+}
+
+
+global proc setOffset()
+{
+    string $allABCs[] = `ls -type "AlembicNode"`;
+    int $from = `intField -q -v Offset_From`;
+    int $to = `intField -q -v Offset_To`;
+    int $offset = `intField -q -v Offset_Base`;
+    for($abc in $allABCs)
+    {
+        int $rand = rand($from,$to) + $offset;
+        setAttr ($abc+".offset") $rand; 
+    }
+}
+
+global proc setSpeed()
+{
+    string $allABCs[] = `ls -type "AlembicNode"`;
+    float $from = `floatField -q -v Speed_From`;
+    float $to = `floatField -q -v Speed_To`;
+    for($abc in $allABCs)
+    {
+        float $rand = rand($from,$to);
+        setAttr ($abc+".speed") $rand;
+    }
+}
+
+
+global proc getSelects()
+{
+    int $count = size(`ls -sl -tr`);
+    intField -e -v $count ABC_Import_Counts;
+}
+
+global proc selectABCs()
+{
+    string $abcLists[] = `fileDialog2 -ff "*.abc" -fm 4`;
+    int $count = `intField -q -v ABC_Import_Counts`;
+    if(`radioButton -q -sl Random_Import`)
+    {
+        for($i=0;$i<$count;$i++)
+        {
+            
+            int $rand = clamp(0,size($abcLists)-1,rand(-1,size($abcLists)+1));
+            AbcImport (fromNativePath($abcLists[$rand]));
+        }
+    }
+    else if (`radioButton -q -sl Sequence_Import`)
+    {
+        for($i=0;$i<$count;$i++)
+        {
+            int $j = $i%size($abcLists);
+            AbcImport (fromNativePath($abcLists[$j]));
+        }
+    }
+    
+}
+
+global string $sources[];
+
+global proc saveSource()
+{
+    global string $sources[];
+    clear $sources;
+    $sources = `ls -sl -tr`;
+}
+
+global proc alignABCs()
+{
+    global string $sources[];
+    if (size($sources)==0)
+        return;
+    string $objs[] = `ls -sl -tr`;
+    for($i=0;$i<size($sources);$i++)
+    {
+        vector $sourcePos = `xform -q -ws -t $sources[$i]`;
+        if(`checkBox -q -v Rotation_Align`)
+        {
+            vector $sourceRot = `xform -q -ro ($sources[$i])`;
+            catchQuiet(`rotate ($sourceRot.x) ($sourceRot.y) ($sourceRot.z) $objs[$i]`);
+        }
+        catchQuiet(`move ($sourcePos.x) ($sourcePos.y) ($sourcePos.z) $objs[$i]`);
+    }
+    clear $sources;
+}
+
+ABC_MainWindow();

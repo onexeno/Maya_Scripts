@@ -1,6 +1,6 @@
 #-*- coding: utf-8 -*-
 import maya.cmds as cmds
-
+import re
 #cmds.ls(typ='reference') #Get reference node
 #cmds.file(q=True,r=True) #Get reference file
 
@@ -47,6 +47,8 @@ def referenceNodeRenderableCheck(referenceNodeList):
 def referenceNodeTypeFilter(referenceNodesList,type):
     #根据输入的节点类型筛选参考节点
     nodesList = []
+    if referenceNodesList is None:
+        return ['']
     for referenceNode in referenceNodesList:
         if(cmds.nodeType(referenceNode) == type):
             nodesList.append(referenceNode)
@@ -73,3 +75,13 @@ def referenceRootGroup(referenceNode):
         else:
             continue
     return worldGroup
+
+def checkReferenceTypeByPath(referenceNode,referenceType):
+    filename = cmds.referenceQuery(referenceNode,filename=True)
+    if filename is None:
+        return 0
+    if re.search(referenceType,referenceNode) is None:
+        return 0
+    else:
+        return 1
+

@@ -4,7 +4,7 @@ import os
 import re
 
 from YM_ReferenceMeshGroup import *
-
+from YM_Camera_Ops import *
 defaultPath = '//S2/Projects/JXB_Season2/TD_Tools/reference_Nodes_List.txt'
 
 def exportCamera():
@@ -18,11 +18,15 @@ def exportCamera():
     camList = cmds.ls(type='camera')
     #print camList
     
-    renderableCamList = []
-    for cam in camList:
+    renderableCamDict = getUnStartupCameras()
+    renderableCamList = renderableCamDict.keys()
+
+    '''for cam in camList:
         if cmds.getAttr(cam+'.renderable') == True:
             renderableCamList.append(cam)
-     
+    '''
+
+
     camTransforms = []
     for renderableCam in renderableCamList:
         for transform in groupAnalyzer(renderableCam,'transform','up'):
@@ -32,7 +36,7 @@ def exportCamera():
     string = ''
     for transform in camTransforms:
         string += ' -root ' + transform
-    
+
     string += ' -worldSpace -writeVisibility '
     string += exportFrameRange(1)
     string += ' -file '
@@ -100,12 +104,12 @@ def exportAbcCmd():
         if removeString is None:
             removeString = key
         else:
-            removeString = removeString.string[0:removeString.start()] + removeString.string[removeString.end():len(removeString.string)-1]
+            removeString = removeString.string[0:removeString.start()] + removeString.string[removeString.end():len(removeString.string)]
         removeString = removeString.replace(':','_')
         argmentsString += removeString
         argmentsString += '.abc'
         try:
-            #print argmentsString
+            print argmentsString
             cmds.AbcExport(j=argmentsString)
         except:
             print (key + 'cannot export, check your scene!')

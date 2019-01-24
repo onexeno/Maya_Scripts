@@ -40,10 +40,14 @@ class myWindow(QtWidgets.QMainWindow):
     def updateList(self):
         pass        
         
-
+import os
 #class extlistWidget(QtWidgets.QListWidget):
-
+os.system('echo Nongshazilie')
 d = myWindow()
+ab = open('D:\\test.txt','w')
+ab.writelines(['test'])
+ab.close()
 
+os.system("C:\\Windows\\system32\\notepad.exe")
 d.show()
 mainWidget.exec_()
